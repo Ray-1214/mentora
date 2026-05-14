@@ -1,0 +1,20 @@
+[
+  {
+    "question": "The meeting _____ at 3 PM.",
+    "options": ["begin", "begins", "beginning", "begun"],
+    "answer": 1,
+    "explanation": "主詞為單數 the meeting，因此動詞使用第三人稱單數 begins。"
+  },
+  {
+    "question": "Please submit your report _____ Friday.",
+    "options": ["in", "on", "by", "at"],
+    "answer": 2,
+    "explanation": "by Friday 表示最晚在星期五之前。"
+  },
+  {
+    "question": "All employees are required to _____ the safety rules.",
+    "options": ["follow", "follows", "following", "followed"],
+    "answer": 0,
+    "explanation": "to 後面接原形動詞。"
+  }
+]
