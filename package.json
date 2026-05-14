@@ -50,9 +50,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "TOEIC Drill",
-      "installerIcon": "public/favicon.ico",
-      "uninstallerIcon": "public/favicon.ico"
+      "shortcutName": "TOEIC Drill"
     }
   },
   "eslintConfig": {
