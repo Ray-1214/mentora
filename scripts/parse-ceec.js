@@ -8,7 +8,7 @@ const path = require('path');
 const CEEC_FILE  = path.join(__dirname, '../高中英文參考詞彙表_111學年度起適用.md');
 const VOCAB_FILE = path.join(__dirname, '../src/data/vocab.json');
 
-// CEEC level → app difficulty (1=easy,2=medium,3=hard)
+// CEEC level → app difficulty (1=easy,2=medium,3=hard) — all 6 levels included
 const LEVEL_TO_DIFF = { '1': 1, '2': 1, '3': 1, '4': 2, '5': 3, '6': 3 };
 
 // Simple keyword → TOEIC category heuristic
@@ -70,8 +70,7 @@ function main() {
     if (!m) { skipped.unparseable++; continue; }
 
     const level = m[3];
-    // Skip levels 1-2 (too basic for TOEIC focus)
-    if (level === '1' || level === '2') { skipped.tooBasic++; continue; }
+    // Include all levels 1-6
 
     const word = parseWord(m[1]);
     const pos  = parsePOS(m[2]);
