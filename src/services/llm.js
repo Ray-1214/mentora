@@ -111,16 +111,23 @@ function parseObject(raw) {
 
 // ── Part 5 ───────────────────────────────────────────────────────────────────
 
-export async function generatePart5(count, themes, difficulty, priorityWords) {
+// grammarHints: top grammar points the user has been getting wrong (e.g. ["verb tense","prepositions"])
+export async function generatePart5(count, themes, difficulty, priorityWords = [], grammarHints = []) {
   const themeLabels = themes.map(t => THEMES_LABEL[t] || t).join(', ');
-  const vocabHint   = priorityWords.length
-    ? `Prioritize using these words naturally in sentences: ${priorityWords.slice(0, 10).join(', ')}.`
+
+  const vocabHint = priorityWords.length
+    ? `IMPORTANT: Naturally use some of these words that the user struggles with: ${priorityWords.slice(0, 10).join(', ')}.`
+    : '';
+
+  const grammarHint = grammarHints.length
+    ? `IMPORTANT: The user has been getting these grammar points wrong — include extra questions on them: ${grammarHints.join(', ')}.`
     : '';
 
   const prompt = `Generate exactly ${count} TOEIC Part 5 (Incomplete Sentences) questions.
 Themes: ${themeLabels}
 Difficulty: ${DIFFICULTY_MAP[difficulty]}
 ${vocabHint}
+${grammarHint}
 
 Return ONLY a JSON array (no wrapping object) of exactly ${count} items:
 [

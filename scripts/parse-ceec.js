@@ -81,20 +81,27 @@ function main() {
     // Skip duplicates
     if (existing.has(word)) { skipped.duplicate++; continue; }
 
+    // TOEIC priority by CEEC level:
+    // Level 5-6 → priority 2 (advanced, often tested in TOEIC)
+    // Level 3-4 → priority 3 (intermediate)
+    // Level 1-2 → priority 4 (basic, less likely as test focus)
+    const toeicPriority = (level >= '5') ? 2 : (level >= '3') ? 3 : 4;
+
     existing.add(word);
     added.push({
-      id:            nextId++,
+      id:             nextId++,
       word,
       pos,
-      meaning_zh:    '',
-      meaning_en:    '',
-      example:       '',
-      synonyms:      [],
-      category:      guessCategory(word, pos),
-      difficulty:    LEVEL_TO_DIFF[level] || 2,
-      ceec_level:    parseInt(level),
-      times_tested:  0,
-      times_correct: 0,
+      meaning_zh:     '',
+      meaning_en:     '',
+      example:        '',
+      synonyms:       [],
+      category:       guessCategory(word, pos),
+      difficulty:     LEVEL_TO_DIFF[level] || 2,
+      ceec_level:     parseInt(level),
+      toeic_priority: toeicPriority,
+      times_tested:   0,
+      times_correct:  0,
     });
   }
 

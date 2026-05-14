@@ -30,6 +30,8 @@ const Quiz = ({ data, config, onFinish, onHome }) => {
         userAnswer: selected,
         correctAnswer: q.correct_answer,
         explanation: q.explanation || '',
+        grammarPoint: q.grammar_point || '',
+        vocabWords: q.vocab_words || [],
       };
       setWrongList(p => [...p, entry]);
       await addWrongAnswer(entry);

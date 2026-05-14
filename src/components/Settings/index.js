@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { getSettings, saveSettings } from '../../services/storage';
+import { getSettings, saveSettings, DEFAULT_MASTERY_THRESHOLD } from '../../services/storage';
 
 const DEFAULT_SETTINGS = {
-  apiBase: 'https://api.ithu.tw/v1',
-  apiKey:  '',
-  model:   'gpt-oss-120b',
+  apiBase:          'https://api.ithu.tw/v1',
+  apiKey:           '',
+  model:            'gpt-oss-120b',
+  masteryThreshold: DEFAULT_MASTERY_THRESHOLD,
 };
 
 const Settings = ({ onHome, isFirstLaunch }) => {
@@ -118,6 +119,28 @@ const Settings = ({ onHome, isFirstLaunch }) => {
           />
           <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
             THU available: gpt-oss-120b · Llama-4-Scout-17B-16E-Instruct-FP8 · Nemotron-3-Nano-Omni-30B
+          </p>
+        </div>
+
+        {/* Mastery threshold */}
+        <div>
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 6 }}>
+            Word Mastery Threshold
+          </label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <input
+              type="range"
+              min={3} max={15} step={1}
+              value={form.masteryThreshold ?? DEFAULT_MASTERY_THRESHOLD}
+              onChange={e => update('masteryThreshold', parseInt(e.target.value))}
+              style={{ flex: 1 }}
+            />
+            <span style={{ fontSize: 15, fontWeight: 600, minWidth: 28 }}>
+              {form.masteryThreshold ?? DEFAULT_MASTERY_THRESHOLD}
+            </span>
+          </div>
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
+            Answer a word correctly this many times to mark it as mastered (skip in future drills).
           </p>
         </div>
 

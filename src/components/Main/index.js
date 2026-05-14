@@ -1,20 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import baseVocab from '../../data/vocab.json';
 import { generatePart5, generatePart6, generatePart7, generateVocabQuestions } from '../../services/llm';
-import { getVocabStats, getExtendedVocab } from '../../services/storage';
+import {
+  getVocabStats, getExtendedVocab,
+  getMasteredIds, getMasteredCount,
+  getWeakGrammarPoints, getWeakVocabWords,
+} from '../../services/storage';
 import { shuffle } from '../../utils';
 
 const MODES = [
   { id: 'quiz',  label: 'Part 5', title: 'Sentence Completion', desc: 'Fill in the blank — grammar & vocabulary' },
   { id: 'part6', label: 'Part 6', title: 'Paragraph Fill',      desc: 'Complete a business passage with 3 blanks' },
   { id: 'part7', label: 'Part 7', title: 'Reading Comprehension',desc: 'Read a short text and answer questions' },
-  { id: 'vocab', label: 'Vocab',  title: 'Word Drill',          desc: 'Drill TOEIC vocabulary words (see Vocab Bank for count)' },
+  { id: 'vocab', label: 'Vocab',  title: 'Word Drill',          desc: 'Drill TOEIC vocabulary words' },
 ];
 
 const THEMES = [
   { id: 'business',   label: 'Business' },
   { id: 'finance',    label: 'Finance' },
-  { id: 'hr',         label: 'Human Resources' },
+  { id: 'hr',         label: 'HR' },
   { id: 'travel',     label: 'Travel' },
   { id: 'dining',     label: 'Dining' },
   { id: 'facilities', label: 'Facilities' },
@@ -30,18 +34,47 @@ const DIFFICULTY_OPTIONS = [
   { id: 'hard',   label: 'Hard (~860)' },
 ];
 
-// errorMsg / onError come from App (persist across loading cycles)
+// Sort vocab by: 1) not mastered first  2) toeic_priority (1=highest)
+//               3) least tested  4) worst accuracy
+function sortVocab(words, stats, masteredIds, includeMastered) {
+  return [...words].sort((a, b) => {
+    const idA = String(a.id), idB = String(b.id);
+    const mA = masteredIds.has(idA), mB = masteredIds.has(idB);
+
+    // Mastered words go to the end (unless includeMastered selected)
+    if (!includeMastered && mA !== mB) return mA ? 1 : -1;
+
+    // TOEIC priority (lower number = more important)
+    const pA = a.toeic_priority || 3, pB = b.toeic_priority || 3;
+    if (pA !== pB) return pA - pB;
+
+    const sA = stats[a.id] || { times_tested: 0, times_correct: 0 };
+    const sB = stats[b.id] || { times_tested: 0, times_correct: 0 };
+    // Least tested first
+    if (sA.times_tested !== sB.times_tested) return sA.times_tested - sB.times_tested;
+    // Worst accuracy first
+    const rA = sA.times_tested ? sA.times_correct / sA.times_tested : 0;
+    const rB = sB.times_tested ? sB.times_correct / sB.times_tested : 0;
+    return rA - rB;
+  });
+}
+
 const Main = ({ onStart, onStartLoading, onError, errorMsg, onReview, onVocabManager, onSettings }) => {
-  const [mode,       setMode]       = useState('quiz');
-  const [themes,     setThemes]     = useState(['business']);
-  const [count,      setCount]      = useState(10);
-  const [difficulty, setDifficulty] = useState('medium');
-  const [vocabBank,  setVocabBank]  = useState(baseVocab);
+  const [mode,            setMode]           = useState('quiz');
+  const [themes,          setThemes]         = useState(['business']);
+  const [count,           setCount]          = useState(10);
+  const [difficulty,      setDifficulty]     = useState('medium');
+  const [includeMastered, setIncludeMastered]= useState(false);
+  const [vocabBank,       setVocabBank]      = useState(baseVocab);
+  const [masteredCount,   setMasteredCount]  = useState(0);
 
   useEffect(() => {
+    // Merge extended vocab
     getExtendedVocab().then(ext => {
       if (ext.length > 0) setVocabBank([...baseVocab, ...ext]);
     });
+    // Load mastered count for display
+    getMasteredCount().then(setMasteredCount);
   }, []);
 
   const toggleTheme = (id) => {
@@ -52,33 +85,32 @@ const Main = ({ onStart, onStartLoading, onError, errorMsg, onReview, onVocabMan
     );
   };
 
-  const getPriorityWords = async () => {
-    const stats = await getVocabStats();
-    const relevant = vocabBank.filter(w => themes.includes(w.category));
-    relevant.sort((a, b) => {
-      const sa = stats[a.id] || { times_tested: 0, times_correct: 0 };
-      const sb = stats[b.id] || { times_tested: 0, times_correct: 0 };
-      if (sa.times_tested !== sb.times_tested) return sa.times_tested - sb.times_tested;
-      const ra = sa.times_tested ? sa.times_correct / sa.times_tested : 0;
-      const rb = sb.times_tested ? sb.times_correct / sb.times_tested : 0;
-      return ra - rb;
-    });
-    return relevant.slice(0, 15).map(w => w.word);
-  };
-
   const handleStart = async () => {
     onStartLoading('Generating questions with AI…');
     try {
       const config = { mode, themes, count, difficulty };
 
       if (mode === 'quiz') {
-        const priority = await getPriorityWords();
-        const questions = await generatePart5(count, themes, difficulty, priority);
-        const shuffled = questions.map(q => ({
+        // Get weak grammar points from recent wrong answers
+        const [stats, masteredIds, grammarHints, weakWords] = await Promise.all([
+          getVocabStats(),
+          getMasteredIds(),
+          getWeakGrammarPoints(),
+          getWeakVocabWords(),
+        ]);
+        // Pick top priority words as hints for the LLM
+        const relevant = vocabBank.filter(w => themes.includes(w.category));
+        const sorted   = sortVocab(relevant, stats, masteredIds, false);
+        const priorityWords = [
+          ...weakWords.slice(0, 5),
+          ...sorted.slice(0, 10).map(w => w.word),
+        ].filter((v, i, a) => a.indexOf(v) === i).slice(0, 12);
+
+        const questions = await generatePart5(count, themes, difficulty, priorityWords, grammarHints);
+        onStart('quiz', questions.map(q => ({
           ...q,
           options: shuffle([q.correct_answer, ...q.incorrect_answers]),
-        }));
-        onStart('quiz', shuffled, config);
+        })), config);
 
       } else if (mode === 'part6') {
         const data = await generatePart6(themes[0], difficulty);
@@ -93,28 +125,20 @@ const Main = ({ onStart, onStartLoading, onError, errorMsg, onReview, onVocabMan
         onStart('part7', data, config);
 
       } else if (mode === 'vocab') {
-        const stats = await getVocabStats();
+        const [stats, masteredIds] = await Promise.all([getVocabStats(), getMasteredIds()]);
         const relevant = vocabBank.filter(w => themes.includes(w.category));
-        relevant.sort((a, b) => {
-          const sa = stats[a.id] || { times_tested: 0, times_correct: 0 };
-          const sb = stats[b.id] || { times_tested: 0, times_correct: 0 };
-          if (sa.times_tested !== sb.times_tested) return sa.times_tested - sb.times_tested;
-          const ra = sa.times_tested ? sa.times_correct / sa.times_tested : 1;
-          const rb = sb.times_tested ? sb.times_correct / sb.times_tested : 1;
-          return ra - rb;
-        });
-        const batch = relevant.slice(0, count);
+        const sorted   = sortVocab(relevant, stats, masteredIds, includeMastered);
+        const batch    = sorted.slice(0, count);
         const questions = await generateVocabQuestions(batch, difficulty);
-        const shuffled = questions.map((q, i) => ({
+        onStart('vocab', questions.map((q, i) => ({
           ...q,
-          wordId: batch[i] ? batch[i].id : null,
+          wordId:  batch[i]?.id ?? null,
           options: shuffle([q.correct_answer, ...q.incorrect_answers]),
-        }));
-        onStart('vocab', shuffled, config);
+        })), config);
       }
     } catch (e) {
       console.error('LLM error:', e);
-      onError(`AI connection failed: ${e.message || 'Unknown error'}. Make sure you are running in Electron mode (npm run electron-dev).`);
+      onError(`AI connection failed: ${e.message || 'Unknown error'}`);
     }
   };
 
@@ -128,14 +152,8 @@ const Main = ({ onStart, onStartLoading, onError, errorMsg, onReview, onVocabMan
           <h1>TOEIC Drill</h1>
           <p>AI-powered practice · 多益備考</p>
         </div>
-        <button
-          className="btn btn-ghost btn-sm"
-          onClick={onSettings}
-          style={{ marginTop: 8, fontSize: 18, padding: '4px 10px' }}
-          title="Settings"
-        >
-          ⚙
-        </button>
+        <button className="btn btn-ghost btn-sm" onClick={onSettings}
+          style={{ marginTop: 8, fontSize: 18, padding: '4px 10px' }} title="Settings">⚙</button>
       </div>
 
       {errorMsg && (
@@ -148,11 +166,7 @@ const Main = ({ onStart, onStartLoading, onError, errorMsg, onReview, onVocabMan
         <span className="config-label">Mode</span>
         <div className="mode-grid">
           {MODES.map(m => (
-            <button
-              key={m.id}
-              className={`mode-card${mode === m.id ? ' selected' : ''}`}
-              onClick={() => setMode(m.id)}
-            >
+            <button key={m.id} className={`mode-card${mode === m.id ? ' selected' : ''}`} onClick={() => setMode(m.id)}>
               <div className="mode-label">{m.label}</div>
               <div className="mode-title">{m.title}</div>
               <div className="mode-desc">{m.desc}</div>
@@ -162,16 +176,12 @@ const Main = ({ onStart, onStartLoading, onError, errorMsg, onReview, onVocabMan
       </div>
 
       <div className="config-section">
-        <span className="config-label">
-          {showThemeMulti ? 'Themes (multi-select)' : 'Theme'}
-        </span>
+        <span className="config-label">{showThemeMulti ? 'Themes (multi-select)' : 'Theme'}</span>
         <div className="chip-group">
           {THEMES.map(t => (
-            <button
-              key={t.id}
+            <button key={t.id}
               className={`chip${themes.includes(t.id) ? ' selected' : ''}`}
-              onClick={() => showThemeMulti ? toggleTheme(t.id) : setThemes([t.id])}
-            >
+              onClick={() => showThemeMulti ? toggleTheme(t.id) : setThemes([t.id])}>
               {t.label}
             </button>
           ))}
@@ -182,11 +192,7 @@ const Main = ({ onStart, onStartLoading, onError, errorMsg, onReview, onVocabMan
         <span className="config-label">Difficulty</span>
         <div className="chip-group">
           {DIFFICULTY_OPTIONS.map(d => (
-            <button
-              key={d.id}
-              className={`chip${difficulty === d.id ? ' selected' : ''}`}
-              onClick={() => setDifficulty(d.id)}
-            >
+            <button key={d.id} className={`chip${difficulty === d.id ? ' selected' : ''}`} onClick={() => setDifficulty(d.id)}>
               {d.label}
             </button>
           ))}
@@ -198,14 +204,26 @@ const Main = ({ onStart, onStartLoading, onError, errorMsg, onReview, onVocabMan
           <span className="config-label">Questions</span>
           <div className="chip-group">
             {COUNT_OPTIONS.map(n => (
-              <button
-                key={n}
-                className={`chip${count === n ? ' selected' : ''}`}
-                onClick={() => setCount(n)}
-              >
-                {n}
-              </button>
+              <button key={n} className={`chip${count === n ? ' selected' : ''}`} onClick={() => setCount(n)}>{n}</button>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Mastered toggle — only shown in vocab mode */}
+      {mode === 'vocab' && masteredCount > 0 && (
+        <div className="config-section">
+          <span className="config-label">Mastered Words</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button
+              className={`chip${includeMastered ? ' selected' : ''}`}
+              onClick={() => setIncludeMastered(v => !v)}
+            >
+              {includeMastered ? '✓ Include mastered' : 'Skip mastered'}
+            </button>
+            <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+              {masteredCount} word{masteredCount !== 1 ? 's' : ''} mastered
+            </span>
           </div>
         </div>
       )}
@@ -213,13 +231,10 @@ const Main = ({ onStart, onStartLoading, onError, errorMsg, onReview, onVocabMan
       <hr className="divider" />
 
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-        <button className="btn btn-primary btn-lg" onClick={handleStart}>
-          Start →
-        </button>
-        <button className="btn btn-ghost" onClick={onReview}>
-          Review Notebook
-        </button>
-        <button className="btn btn-ghost" onClick={onVocabManager} title={`Vocab bank: ${vocabBank.length} words`}>
+        <button className="btn btn-primary btn-lg" onClick={handleStart}>Start →</button>
+        <button className="btn btn-ghost" onClick={onReview}>Review Notebook</button>
+        <button className="btn btn-ghost" onClick={onVocabManager}
+          title={`Vocab bank: ${vocabBank.length} words`}>
           Vocab Bank ({vocabBank.length})
         </button>
       </div>
