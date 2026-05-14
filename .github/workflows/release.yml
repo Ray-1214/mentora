@@ -1,0 +1,51 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build React app
+        run: npm run build
+        env:
+          CI: false
+          REACT_APP_LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
+          REACT_APP_LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          REACT_APP_LLM_MODEL: ${{ secrets.LLM_MODEL }}
+
+      - name: Package Electron app (NSIS installer)
+        run: npx electron-builder --win --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: List dist output
+        run: Get-ChildItem dist -Recurse -Name
+
+      - name: Upload Setup.exe to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.exe
+            dist/*.zip
+          token: ${{ secrets.GITHUB_TOKEN }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true

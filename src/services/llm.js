@@ -24,6 +24,7 @@ const THEMES_LABEL = {
   facilities: 'real estate and facilities management',
   marketing:  'sales, marketing, and advertising',
   technology: 'technology and manufacturing',
+  academic:   'academic and general English (CEEC Level 3-6)',
 };
 
 // ── LLM call ─────────────────────────────────────────────────────────────────
@@ -213,7 +214,9 @@ Return ONLY a JSON object:
 // ── Vocab Drill ───────────────────────────────────────────────────────────────
 
 export async function generateVocabQuestions(words, difficulty) {
-  const wordList = words.map(w => `${w.word} (${w.pos}) - ${w.meaning_en}`).join('\n');
+  const wordList = words.map(w =>
+    w.meaning_en ? `${w.word} (${w.pos}) - ${w.meaning_en}` : `${w.word} (${w.pos})`
+  ).join('\n');
 
   const prompt = `Generate TOEIC vocabulary fill-in-the-blank questions for these words:
 ${wordList}

@@ -20,6 +20,7 @@ const THEMES = [
   { id: 'facilities', label: 'Facilities' },
   { id: 'marketing',  label: 'Marketing' },
   { id: 'technology', label: 'Technology' },
+  { id: 'academic',   label: 'Academic (CEEC)' },
 ];
 
 const COUNT_OPTIONS = [5, 10, 15, 20];

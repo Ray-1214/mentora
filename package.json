@@ -1,6 +1,6 @@
 {
   "name": "toeic-drill",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "homepage": ".",
   "main": "public/electron.js",
@@ -41,13 +41,18 @@
     "extraResources": [],
     "win": {
       "target": [
-        {
-          "target": "portable",
-          "arch": [
-            "x64"
-          ]
-        }
+        { "target": "nsis",     "arch": ["x64"] },
+        { "target": "portable", "arch": ["x64"] }
       ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "TOEIC Drill",
+      "installerIcon": "public/favicon.ico",
+      "uninstallerIcon": "public/favicon.ico"
     }
   },
   "eslintConfig": {

@@ -28,3 +28,7 @@ yarn-error.log*
 
 # Claude Code project memory (personal notes)
 .claude/
+
+# CEEC vocabulary source (copyright material, not for distribution)
+*.md
+!README.md
