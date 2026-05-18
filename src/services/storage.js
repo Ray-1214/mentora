@@ -19,50 +19,78 @@ async function del(key) {
 }
 
 // ── Mastery config ────────────────────────────────────────────────────────────
-export const DEFAULT_MASTERY_THRESHOLD = 7; // correct answers to graduate a word
+export const DEFAULT_MASTERY_THRESHOLD = 7;
 
 export async function getMasteryThreshold() {
   const s = await getSettings();
   return s.masteryThreshold ?? DEFAULT_MASTERY_THRESHOLD;
 }
 
-// ── Vocab stats ───────────────────────────────────────────────────────────────
-export async function getVocabStats() {
-  return (await get('vocabStats')) || {};
+// ── Word Stats ────────────────────────────────────────────────────────────────
+// Key: word.toLowerCase()  (stable across vocab rebuilds; cross-exam words share stats)
+//
+// Shape per word:
+// {
+//   option_appearance_count: number,  — times shown as ANY option (answer or distractor)
+//   consecutive_corrects:    number,  — current streak as correct answer (resets on wrong)
+//   times_as_answer:         number,  — times shown as the correct answer
+//   mastered:                boolean, — true when consecutive_corrects >= threshold
+//   last_seen:               number,  — timestamp
+// }
+
+export async function getWordStats() {
+  return (await get('wordStats')) || {};
 }
 
-export async function updateVocabStats(wordId, correct) {
-  const stats    = await getVocabStats();
+/**
+ * Update stats for words shown in a single question.
+ *
+ * @param {string}   answerWord     – the correct answer word (lowercase)
+ * @param {string[]} distractorWords – other words shown as options
+ * @param {boolean}  userCorrect    – did the user select the correct answer?
+ */
+export async function updateWordStats(answerWord, distractorWords, userCorrect) {
   const threshold = await getMasteryThreshold();
-  if (!stats[wordId]) stats[wordId] = { times_tested: 0, times_correct: 0, mastered: false };
-  stats[wordId].times_tested += 1;
-  if (correct) {
-    stats[wordId].times_correct += 1;
-    if (stats[wordId].times_correct >= threshold) {
-      stats[wordId].mastered = true;
-    }
-  }
-  await set('vocabStats', stats);
-  return stats[wordId];
-}
+  const stats     = await getWordStats();
+  const now       = Date.now();
 
-// Returns Set of mastered word IDs
-export async function getMasteredIds() {
-  const stats = await getVocabStats();
-  return new Set(
-    Object.entries(stats)
-      .filter(([, s]) => s.mastered)
-      .map(([id]) => id)
-  );
+  const allShown = [answerWord, ...distractorWords];
+
+  // 1. Increment option_appearance_count for ALL shown words
+  for (const word of allShown) {
+    const key = word.toLowerCase();
+    if (!stats[key]) stats[key] = { option_appearance_count: 0, consecutive_corrects: 0, times_as_answer: 0, mastered: false, last_seen: now };
+    stats[key].option_appearance_count += 1;
+    stats[key].last_seen = now;
+  }
+
+  // 2. Update answer word stats
+  const aKey = answerWord.toLowerCase();
+  stats[aKey].times_as_answer += 1;
+  if (userCorrect) {
+    stats[aKey].consecutive_corrects += 1;
+    if (stats[aKey].consecutive_corrects >= threshold) stats[aKey].mastered = true;
+  } else {
+    stats[aKey].consecutive_corrects = 0;  // RESET on wrong answer
+  }
+
+  await set('wordStats', stats);
+  return stats[aKey];
 }
 
 export async function getMasteredCount() {
-  const ids = await getMasteredIds();
-  return ids.size;
+  const stats = await getWordStats();
+  return Object.values(stats).filter(s => s.mastered).length;
 }
 
-export async function resetVocabStats() {
-  await del('vocabStats');
+export async function resetWordStats() {
+  await del('wordStats');
+}
+
+// ── Legacy adapter (old per-id vocab stats used by Vocab Bank Manager) ────────
+export async function getVocabStats() {
+  // Proxy: read from wordStats but return in old format for components still using it
+  return (await get('wordStats')) || {};
 }
 
 // ── Wrong answers (review notebook) ──────────────────────────────────────────
@@ -72,9 +100,7 @@ export async function getWrongAnswers() {
 
 export async function addWrongAnswer(entry) {
   const list = await getWrongAnswers();
-  const exists = list.some(
-    w => w.question === entry.question && w.quizType === entry.quizType
-  );
+  const exists = list.some(w => w.question === entry.question && w.quizType === entry.quizType);
   if (!exists) list.push({ ...entry, addedAt: Date.now() });
   await set('wrongAnswers', list.slice(-200));
 }
@@ -89,23 +115,20 @@ export async function clearWrongAnswers() {
   await del('wrongAnswers');
 }
 
-// Analyse recent Part 5 wrong answers and return top weak grammar points
+// Analyse recent Part 5 wrong answers → top weak grammar points
 export async function getWeakGrammarPoints() {
-  const wrong = await getWrongAnswers();
+  const wrong  = await getWrongAnswers();
   const counts = {};
   wrong
     .filter(w => w.quizType === 'Part 5' && w.grammarPoint)
     .slice(-40)
     .forEach(w => { counts[w.grammarPoint] = (counts[w.grammarPoint] || 0) + 1; });
-  return Object.entries(counts)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
-    .map(([k]) => k);
+  return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([k]) => k);
 }
 
-// Return recently-wrong vocab words (answered incorrectly 2+ times)
+// Return words the user has answered incorrectly 2+ times recently
 export async function getWeakVocabWords() {
-  const wrong = await getWrongAnswers();
+  const wrong  = await getWrongAnswers();
   const counts = {};
   wrong
     .filter(w => w.quizType === 'Vocabulary' && w.word)
@@ -117,7 +140,7 @@ export async function getWeakVocabWords() {
     .map(([word]) => word);
 }
 
-// ── Quiz history (last 50 sessions) ──────────────────────────────────────────
+// ── Quiz history ──────────────────────────────────────────────────────────────
 export async function getQuizHistory() {
   return (await get('quizHistory')) || [];
 }

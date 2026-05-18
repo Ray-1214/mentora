@@ -90,7 +90,10 @@ const Quiz = ({ data, config, onFinish, onHome }) => {
 
       <div className="quiz-meta">
         <span className="quiz-progress">{idx + 1} / {data.length}</span>
-        <span className="tag">{config.difficulty}</span>
+        <div style={{ display: 'flex', gap: 6 }}>
+          {config.exam && <span className="tag">{config.exam}</span>}
+          <span className="tag">{config.difficulty}</span>
+        </div>
       </div>
 
       <div className="card" style={{ marginBottom: 16 }}>

@@ -1,13 +1,20 @@
 import { getSettings } from './storage';
+import { EXAM_CONTEXT } from './vocab';
 
 // Static fallbacks (used in browser-only mode; Electron reads live settings from store per call)
 const LLM_API_BASE_DEFAULT = process.env.REACT_APP_LLM_BASE_URL || 'https://api.ithu.tw/v1';
 const LLM_API_KEY_DEFAULT  = process.env.REACT_APP_LLM_API_KEY  || '';
 const LLM_MODEL_DEFAULT    = process.env.REACT_APP_LLM_MODEL    || 'gpt-oss-120b';
 
-const SYSTEM_PROMPT_BASE = `You are an expert TOEIC test designer with 20 years of experience.
-You create authentic TOEIC-style questions that match the actual exam format and vocabulary level.
+function systemPrompt(exam) {
+  const ctx = EXAM_CONTEXT[exam] || EXAM_CONTEXT['TOEIC'];
+  return `You are an expert language test designer.
+Create vocabulary and grammar questions for ${ctx}.
 IMPORTANT: Return ONLY raw JSON — no markdown, no code fences, no explanation text before or after.`;
+}
+
+// Keep a default for non-exam-specific calls
+const SYSTEM_PROMPT_BASE = systemPrompt('TOEIC');
 
 const DIFFICULTY_MAP = {
   easy:   '~600 score level (basic grammar, common vocabulary)',
@@ -24,7 +31,7 @@ const THEMES_LABEL = {
   facilities: 'real estate and facilities management',
   marketing:  'sales, marketing, and advertising',
   technology: 'technology and manufacturing',
-  academic:   'academic and general English (CEEC Level 3-6)',
+  academic:   'academic and general English vocabulary',
 };
 
 // ── LLM call ─────────────────────────────────────────────────────────────────
@@ -112,7 +119,7 @@ function parseObject(raw) {
 // ── Part 5 ───────────────────────────────────────────────────────────────────
 
 // grammarHints: top grammar points the user has been getting wrong (e.g. ["verb tense","prepositions"])
-export async function generatePart5(count, themes, difficulty, priorityWords = [], grammarHints = []) {
+export async function generatePart5(count, themes, difficulty, priorityWords = [], grammarHints = [], exam = 'TOEIC') {
   const themeLabels = themes.map(t => THEMES_LABEL[t] || t).join(', ');
 
   const vocabHint = priorityWords.length
@@ -143,19 +150,19 @@ Return ONLY a JSON array (no wrapping object) of exactly ${count} items:
 Rules:
 - Use exactly _____ (5 underscores) for the blank
 - 1 correct + 3 plausible but wrong options
-- Authentic business/office context only
+- Context appropriate for ${exam} exam format
 - Concise explanations (1-2 sentences)`;
 
-  const raw = await callLLM(SYSTEM_PROMPT_BASE, prompt);
+  const raw = await callLLM(systemPrompt(exam), prompt);
   return parseArray(raw);
 }
 
 // ── Part 6 ───────────────────────────────────────────────────────────────────
 
-export async function generatePart6(theme, difficulty) {
+export async function generatePart6(theme, difficulty, exam = 'TOEIC') {
   const themeLabel = THEMES_LABEL[theme] || theme;
 
-  const prompt = `Generate 1 TOEIC Part 6 passage with exactly 3 fill-in-the-blank questions.
+  const prompt = `Generate 1 reading passage with exactly 3 fill-in-the-blank questions. [${exam} format]
 Theme: ${themeLabel}
 Difficulty: ${DIFFICULTY_MAP[difficulty]}
 
@@ -179,10 +186,10 @@ Return ONLY a JSON object:
 
 // ── Part 7 ───────────────────────────────────────────────────────────────────
 
-export async function generatePart7(theme, difficulty) {
+export async function generatePart7(theme, difficulty, exam = 'TOEIC') {
   const themeLabel = THEMES_LABEL[theme] || theme;
 
-  const prompt = `Generate 1 TOEIC Part 7 reading passage with exactly 3 comprehension questions.
+  const prompt = `Generate 1 reading comprehension passage with exactly 3 questions. [${exam} format]
 Theme: ${themeLabel}
 Difficulty: ${DIFFICULTY_MAP[difficulty]}
 
@@ -214,36 +221,45 @@ Return ONLY a JSON object:
   ]
 }`;
 
-  const raw = await callLLM(SYSTEM_PROMPT_BASE, prompt);
+  const raw = await callLLM(systemPrompt(exam), prompt);
   return parseObject(raw);
 }
 
 // ── Vocab Drill ───────────────────────────────────────────────────────────────
+// wordsWithDistractors: [{ answerWord: WordEntry, distractors: WordEntry[] }, ...]
+// The LLM only writes the sentence; options are pre-selected so we can track all 4 IDs.
 
-export async function generateVocabQuestions(words, difficulty) {
-  const wordList = words.map(w =>
-    w.meaning_en ? `${w.word} (${w.pos}) - ${w.meaning_en}` : `${w.word} (${w.pos})`
-  ).join('\n');
+export async function generateVocabQuestions(wordsWithDistractors, exam = 'TOEIC', difficulty = 'medium') {
+  const items = wordsWithDistractors.map((item, i) => {
+    const w = item.answerWord;
+    const def = w.meaning_zh || w.meaning_en || '';
+    const hint = def ? ` — ${def}` : '';
+    const dists = item.distractors.map(d => d.word).join(', ');
+    return `${i + 1}. Answer: "${w.word}" (${w.pos || '?'})${hint} | Distractors: ${dists}`;
+  }).join('\n');
 
-  const prompt = `Generate TOEIC vocabulary fill-in-the-blank questions for these words:
-${wordList}
+  const prompt = `Generate exactly ${wordsWithDistractors.length} vocabulary fill-in-the-blank questions.
+Exam: ${exam} | Difficulty: ${DIFFICULTY_MAP[difficulty]}
 
-Difficulty: ${DIFFICULTY_MAP[difficulty]}
+For each item below, the answer word and 3 distractors are already chosen.
+Your ONLY job is to write a natural fill-in-the-blank sentence where the answer word fits best.
 
-Return ONLY a JSON array with exactly ${words.length} items, one per word in the same order:
+${items}
+
+Return ONLY a JSON array with exactly ${wordsWithDistractors.length} items in the same order:
 [
   {
     "word": "accomplish",
     "question": "The project team managed to _____ all milestones two weeks early.",
-    "correct_answer": "accomplish",
-    "incorrect_answers": ["accomplishment", "accomplished to", "accomplishing"],
-    "meaning_zh": "完成；達成",
-    "example": "She accomplished the task in record time.",
-    "explanation": "'accomplish' is the bare infinitive required after 'to'. The other options are grammatically incorrect in this context."
+    "explanation": "'Accomplish' means to complete successfully. The context shows a finished achievement, fitting the blank perfectly."
   }
-]`;
+]
+Rules:
+- Use exactly _____ (5 underscores) for the blank
+- The sentence must clearly favour the answer word over all 3 distractors
+- Keep sentences natural and realistic for the exam context`;
 
-  const raw = await callLLM(SYSTEM_PROMPT_BASE, prompt);
+  const raw = await callLLM(systemPrompt(exam), prompt);
   return parseArray(raw);
 }
 
@@ -254,7 +270,7 @@ const VOCAB_LEVELS = {
   basic:    'TOEIC 400-600 level (everyday office and travel vocabulary)',
   mid:      'TOEIC 600-730 level (intermediate business and finance vocabulary)',
   advanced: 'TOEIC 730-860 level (formal business, legal, and academic vocabulary)',
-  expert:   'TOEIC 860-990 level (sophisticated professional vocabulary, similar to CEEC Level 5-6)',
+  expert:   'TOEIC 860-990 level (sophisticated professional vocabulary, academic English)',
 };
 
 export async function generateVocabBatch(level, category, existingWords, batchSize = 50) {

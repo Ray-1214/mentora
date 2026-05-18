@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import baseVocab from '../../data/vocab.json';
 import { generatePart5, generatePart6, generatePart7, generateVocabQuestions } from '../../services/llm';
+import { selectAnswerWords, selectDistractors, ALL_EXAMS, EXAM_LABELS } from '../../services/vocab';
 import {
-  getVocabStats, getExtendedVocab,
-  getMasteredIds, getMasteredCount,
-  getWeakGrammarPoints, getWeakVocabWords,
+  getWordStats, getExtendedVocab,
+  getMasteredCount, getWeakGrammarPoints, getWeakVocabWords,
 } from '../../services/storage';
 import { shuffle } from '../../utils';
 
 const MODES = [
-  { id: 'quiz',  label: 'Part 5', title: 'Sentence Completion', desc: 'Fill in the blank — grammar & vocabulary' },
-  { id: 'part6', label: 'Part 6', title: 'Paragraph Fill',      desc: 'Complete a business passage with 3 blanks' },
-  { id: 'part7', label: 'Part 7', title: 'Reading Comprehension',desc: 'Read a short text and answer questions' },
-  { id: 'vocab', label: 'Vocab',  title: 'Word Drill',          desc: 'Drill TOEIC vocabulary words' },
+  { id: 'quiz',  label: 'Part 5', title: 'Sentence Completion', desc: 'Grammar & vocabulary fill-in-the-blank' },
+  { id: 'part6', label: 'Part 6', title: 'Paragraph Fill',      desc: 'Complete a passage with 3 blanks' },
+  { id: 'part7', label: 'Part 7', title: 'Reading Comprehension',desc: 'Short passage + 3 comprehension questions' },
+  { id: 'vocab', label: 'Vocab',  title: 'Word Drill',          desc: 'Frequency-ranked vocabulary with smart distractors' },
 ];
 
 const THEMES = [
@@ -24,56 +24,30 @@ const THEMES = [
   { id: 'facilities', label: 'Facilities' },
   { id: 'marketing',  label: 'Marketing' },
   { id: 'technology', label: 'Technology' },
-  { id: 'academic',   label: 'Academic (CEEC)' },
+  { id: 'academic',   label: 'Academic' },
 ];
 
-const COUNT_OPTIONS = [5, 10, 15, 20];
+const COUNT_OPTIONS     = [5, 10, 15, 20];
 const DIFFICULTY_OPTIONS = [
   { id: 'easy',   label: 'Easy (~600)' },
   { id: 'medium', label: 'Medium (~730)' },
   { id: 'hard',   label: 'Hard (~860)' },
 ];
 
-// Sort vocab by: 1) not mastered first  2) toeic_priority (1=highest)
-//               3) least tested  4) worst accuracy
-function sortVocab(words, stats, masteredIds, includeMastered) {
-  return [...words].sort((a, b) => {
-    const idA = String(a.id), idB = String(b.id);
-    const mA = masteredIds.has(idA), mB = masteredIds.has(idB);
-
-    // Mastered words go to the end (unless includeMastered selected)
-    if (!includeMastered && mA !== mB) return mA ? 1 : -1;
-
-    // TOEIC priority (lower number = more important)
-    const pA = a.toeic_priority || 3, pB = b.toeic_priority || 3;
-    if (pA !== pB) return pA - pB;
-
-    const sA = stats[a.id] || { times_tested: 0, times_correct: 0 };
-    const sB = stats[b.id] || { times_tested: 0, times_correct: 0 };
-    // Least tested first
-    if (sA.times_tested !== sB.times_tested) return sA.times_tested - sB.times_tested;
-    // Worst accuracy first
-    const rA = sA.times_tested ? sA.times_correct / sA.times_tested : 0;
-    const rB = sB.times_tested ? sB.times_correct / sB.times_tested : 0;
-    return rA - rB;
-  });
-}
-
 const Main = ({ onStart, onStartLoading, onError, errorMsg, onReview, onVocabManager, onSettings }) => {
-  const [mode,            setMode]           = useState('quiz');
-  const [themes,          setThemes]         = useState(['business']);
-  const [count,           setCount]          = useState(10);
-  const [difficulty,      setDifficulty]     = useState('medium');
-  const [includeMastered, setIncludeMastered]= useState(false);
-  const [vocabBank,       setVocabBank]      = useState(baseVocab);
-  const [masteredCount,   setMasteredCount]  = useState(0);
+  const [exam,           setExam]           = useState('TOEIC');
+  const [mode,           setMode]           = useState('quiz');
+  const [themes,         setThemes]         = useState(['business']);
+  const [count,          setCount]          = useState(10);
+  const [difficulty,     setDifficulty]     = useState('medium');
+  const [includeMastered,setIncludeMastered]= useState(false);
+  const [vocabBank,      setVocabBank]      = useState(baseVocab);
+  const [masteredCount,  setMasteredCount]  = useState(0);
 
   useEffect(() => {
-    // Merge extended vocab
     getExtendedVocab().then(ext => {
-      if (ext.length > 0) setVocabBank([...baseVocab, ...ext]);
+      setVocabBank(ext.length > 0 ? [...baseVocab, ...ext] : baseVocab);
     });
-    // Load mastered count for display
     getMasteredCount().then(setMasteredCount);
   }, []);
 
@@ -88,53 +62,80 @@ const Main = ({ onStart, onStartLoading, onError, errorMsg, onReview, onVocabMan
   const handleStart = async () => {
     onStartLoading('Generating questions with AI…');
     try {
-      const config = { mode, themes, count, difficulty };
+      const config = { mode, themes, count, difficulty, exam };
 
       if (mode === 'quiz') {
-        // Get weak grammar points from recent wrong answers
-        const [stats, masteredIds, grammarHints, weakWords] = await Promise.all([
-          getVocabStats(),
-          getMasteredIds(),
+        const [stats, grammarHints, weakWords] = await Promise.all([
+          getWordStats(),
           getWeakGrammarPoints(),
           getWeakVocabWords(),
         ]);
-        // Pick top priority words as hints for the LLM
-        const relevant = vocabBank.filter(w => themes.includes(w.category));
-        const sorted   = sortVocab(relevant, stats, masteredIds, false);
+        // Priority vocab hints for the LLM
         const priorityWords = [
           ...weakWords.slice(0, 5),
-          ...sorted.slice(0, 10).map(w => w.word),
+          ...selectAnswerWords(
+            vocabBank.filter(w => themes.includes(w.category) && w.exams?.includes(exam)),
+            stats, 10, { exam }
+          ).map(w => w.word),
         ].filter((v, i, a) => a.indexOf(v) === i).slice(0, 12);
 
-        const questions = await generatePart5(count, themes, difficulty, priorityWords, grammarHints);
+        const questions = await generatePart5(count, themes, difficulty, priorityWords, grammarHints, exam);
         onStart('quiz', questions.map(q => ({
           ...q,
+          exam,
           options: shuffle([q.correct_answer, ...q.incorrect_answers]),
         })), config);
 
       } else if (mode === 'part6') {
-        const data = await generatePart6(themes[0], difficulty);
-        onStart('part6', data, config);
+        const data = await generatePart6(themes[0], difficulty, exam);
+        onStart('part6', { ...data, exam }, config);
 
       } else if (mode === 'part7') {
-        const data = await generatePart7(themes[0], difficulty);
+        const data = await generatePart7(themes[0], difficulty, exam);
         data.questions = data.questions.map(q => ({
           ...q,
           options: shuffle([q.correct_answer, ...q.incorrect_answers]),
         }));
-        onStart('part7', data, config);
+        onStart('part7', { ...data, exam }, config);
 
       } else if (mode === 'vocab') {
-        const [stats, masteredIds] = await Promise.all([getVocabStats(), getMasteredIds()]);
-        const relevant = vocabBank.filter(w => themes.includes(w.category));
-        const sorted   = sortVocab(relevant, stats, masteredIds, includeMastered);
-        const batch    = sorted.slice(0, count);
-        const questions = await generateVocabQuestions(batch, difficulty);
-        onStart('vocab', questions.map((q, i) => ({
-          ...q,
-          wordId:  batch[i]?.id ?? null,
-          options: shuffle([q.correct_answer, ...q.incorrect_answers]),
-        })), config);
+        const stats = await getWordStats();
+
+        // Filter bank by exam
+        const examBank = vocabBank.filter(w => w.exams?.includes(exam));
+
+        // Pick answer words (frequency_tier sorted, non-mastered first)
+        const answerWords = selectAnswerWords(examBank, stats, count, { exam, includeMastered });
+
+        // For each answer word, pick 3 distractors from same exam bank
+        const wordsWithDistractors = answerWords.map(aw => ({
+          answerWord:  aw,
+          distractors: selectDistractors(aw, examBank, exam, 3),
+        }));
+
+        // LLM generates sentences only (options are already selected)
+        const questions = await generateVocabQuestions(wordsWithDistractors, exam, difficulty);
+
+        // Merge LLM question text with pre-selected options
+        const merged = questions.map((q, i) => {
+          const aw   = wordsWithDistractors[i].answerWord;
+          const dsts = wordsWithDistractors[i].distractors;
+          return {
+            word:           aw.word,
+            wordId:         aw.id,
+            distractorIds:  dsts.map(d => d.id),
+            distractorWords:dsts.map(d => d.word),
+            question:       q.question  || `Use "${aw.word}" in the sentence: _____`,
+            correct_answer: aw.word,
+            incorrect_answers: dsts.map(d => d.word),
+            options:        shuffle([aw.word, ...dsts.map(d => d.word)]),
+            explanation:    q.explanation || '',
+            meaning_zh:     aw.meaning_zh || '',
+            exam,
+          };
+        });
+
+        onStart('vocab', merged, config);
       }
     } catch (e) {
       console.error('LLM error:', e);
@@ -145,12 +146,15 @@ const Main = ({ onStart, onStartLoading, onError, errorMsg, onReview, onVocabMan
   const showCount      = mode === 'quiz' || mode === 'vocab';
   const showThemeMulti = mode === 'quiz' || mode === 'vocab';
 
+  // Count words in selected exam
+  const examWordCount = vocabBank.filter(w => w.exams?.includes(exam)).length;
+
   return (
     <div className="app-shell">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingTop: 32 }}>
         <div className="home-logo" style={{ padding: 0, textAlign: 'left' }}>
-          <h1>TOEIC Drill</h1>
-          <p>AI-powered practice · 多益備考</p>
+          <h1>Test Drill</h1>
+          <p>多益 · 托福 · 雅思 · 學測 AI 出題</p>
         </div>
         <button className="btn btn-ghost btn-sm" onClick={onSettings}
           style={{ marginTop: 8, fontSize: 18, padding: '4px 10px' }} title="Settings">⚙</button>
@@ -162,6 +166,36 @@ const Main = ({ onStart, onStartLoading, onError, errorMsg, onReview, onVocabMan
         </div>
       )}
 
+      {/* Exam selector */}
+      <div className="config-section">
+        <span className="config-label">Exam</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <select
+            value={exam}
+            onChange={e => setExam(e.target.value)}
+            style={{
+              padding: '8px 12px',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-sm)',
+              fontSize: 14,
+              fontFamily: 'var(--font)',
+              background: 'var(--surface)',
+              color: 'var(--text-primary)',
+              cursor: 'pointer',
+              outline: 'none',
+            }}
+          >
+            {ALL_EXAMS.map(e => (
+              <option key={e} value={e}>{EXAM_LABELS[e]}</option>
+            ))}
+          </select>
+          <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+            {examWordCount.toLocaleString()} words
+          </span>
+        </div>
+      </div>
+
+      {/* Mode */}
       <div className="config-section">
         <span className="config-label">Mode</span>
         <div className="mode-grid">
@@ -175,8 +209,9 @@ const Main = ({ onStart, onStartLoading, onError, errorMsg, onReview, onVocabMan
         </div>
       </div>
 
+      {/* Themes */}
       <div className="config-section">
-        <span className="config-label">{showThemeMulti ? 'Themes (multi-select)' : 'Theme'}</span>
+        <span className="config-label">{showThemeMulti ? 'Topics (multi-select)' : 'Topic'}</span>
         <div className="chip-group">
           {THEMES.map(t => (
             <button key={t.id}
@@ -188,6 +223,7 @@ const Main = ({ onStart, onStartLoading, onError, errorMsg, onReview, onVocabMan
         </div>
       </div>
 
+      {/* Difficulty */}
       <div className="config-section">
         <span className="config-label">Difficulty</span>
         <div className="chip-group">
@@ -199,6 +235,7 @@ const Main = ({ onStart, onStartLoading, onError, errorMsg, onReview, onVocabMan
         </div>
       </div>
 
+      {/* Count */}
       {showCount && (
         <div className="config-section">
           <span className="config-label">Questions</span>
@@ -210,7 +247,7 @@ const Main = ({ onStart, onStartLoading, onError, errorMsg, onReview, onVocabMan
         </div>
       )}
 
-      {/* Mastered toggle — only shown in vocab mode */}
+      {/* Mastered toggle (vocab mode only) */}
       {mode === 'vocab' && masteredCount > 0 && (
         <div className="config-section">
           <span className="config-label">Mastered Words</span>
@@ -233,9 +270,8 @@ const Main = ({ onStart, onStartLoading, onError, errorMsg, onReview, onVocabMan
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
         <button className="btn btn-primary btn-lg" onClick={handleStart}>Start →</button>
         <button className="btn btn-ghost" onClick={onReview}>Review Notebook</button>
-        <button className="btn btn-ghost" onClick={onVocabManager}
-          title={`Vocab bank: ${vocabBank.length} words`}>
-          Vocab Bank ({vocabBank.length})
+        <button className="btn btn-ghost" onClick={onVocabManager}>
+          Vocab Bank ({vocabBank.length.toLocaleString()})
         </button>
       </div>
     </div>

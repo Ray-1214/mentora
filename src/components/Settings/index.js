@@ -173,7 +173,7 @@ const Settings = ({ onHome, isFirstLaunch }) => {
 
         {isFirstLaunch && saved && (
           <button className="btn btn-primary btn-lg" onClick={onHome} style={{ marginTop: 4 }}>
-            Start Using TOEIC Drill →
+            Start Using Test Drill →
           </button>
         )}
       </div>
@@ -181,9 +181,9 @@ const Settings = ({ onHome, isFirstLaunch }) => {
       {/* Vocab bank info */}
       <div style={{ marginTop: 24, padding: '14px 16px', background: 'var(--tag-bg)', borderRadius: 'var(--radius)', fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.8 }}>
         <strong style={{ color: 'var(--text-primary)' }}>About the Vocabulary Bank</strong><br />
-        This app ships with <strong>360 built-in TOEIC words</strong>.<br />
-        To expand to <strong>7,000 words</strong>, go to <em>Vocab Bank</em> on the home screen and press <em>Auto-fill to 7,000</em>.<br />
-        <span style={{ color: 'var(--text-muted)' }}>This runs ~130 LLM calls and takes about 25–30 minutes. Progress is saved automatically.</span>
+        Ships with <strong>~20,000 words</strong> across TOEIC · TOEFL · IELTS · 學測.<br />
+        Vocab Drill selects words by <em>frequency tier</em> — most important first.<br />
+        <span style={{ color: 'var(--text-muted)' }}>Mastered words (consecutive correct ≥ threshold) are skipped automatically.</span>
       </div>
     </div>
   );

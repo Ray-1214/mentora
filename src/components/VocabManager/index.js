@@ -15,7 +15,7 @@ const CATEGORIES = [
 ];
 
 const BATCH_SIZE = 50;
-const TARGET = 7000;
+const TARGET = 25000;  // now targeting cross-exam total
 
 const VocabManager = ({ onHome }) => {
   const [extended, setExtended]   = useState([]);
