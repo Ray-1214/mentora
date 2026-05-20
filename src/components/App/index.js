@@ -4,6 +4,8 @@ import Quiz from '../Quiz';
 import Part6Quiz from '../Part6Quiz';
 import Part7Quiz from '../Part7Quiz';
 import WordDrill from '../WordDrill';
+import DefinitionMatch from '../DefinitionMatch';
+import ReverseDrill from '../ReverseDrill';
 import Result from '../Result';
 import Review from '../Review';
 import VocabManager from '../VocabManager';
@@ -11,26 +13,22 @@ import Settings from '../Settings';
 import Loader from '../Loader';
 import { hasApiKey } from '../../services/storage';
 
-// screen: 'loading' | 'settings' | 'home' | 'quiz' | 'part6' | 'part7' | 'vocab' | 'result' | 'review' | 'vocabmanager'
+// screen: 'loading'|'settings'|'home'|'quiz'|'part6'|'part7'|'vocab'
+//         |'defmatch'|'reversedrill'|'result'|'review'|'vocabmanager'
 const App = () => {
-  const [screen,      setScreen]      = useState('loading');
-  const [isFirstLaunch, setIsFirst]   = useState(false);
-  const [loading,     setLoading]     = useState(false);
-  const [loadingMsg,  setLoadingMsg]  = useState('Generating questions…');
-  const [homeError,   setHomeError]   = useState(null);
-  const [quizData,    setQuizData]    = useState(null);
-  const [resultData,  setResultData]  = useState(null);
-  const [quizConfig,  setQuizConfig]  = useState(null);
+  const [screen,       setScreen]      = useState('loading');
+  const [isFirstLaunch,setIsFirst]     = useState(false);
+  const [loading,      setLoading]     = useState(false);
+  const [loadingMsg,   setLoadingMsg]  = useState('Generating questions…');
+  const [homeError,    setHomeError]   = useState(null);
+  const [quizData,     setQuizData]    = useState(null);
+  const [resultData,   setResultData]  = useState(null);
+  const [quizConfig,   setQuizConfig]  = useState(null);
 
-  // On mount: check if API key is configured
   useEffect(() => {
     hasApiKey().then(ok => {
-      if (!ok) {
-        setIsFirst(true);
-        setScreen('settings');
-      } else {
-        setScreen('home');
-      }
+      setIsFirst(!ok);
+      setScreen(!ok ? 'settings' : 'home');
     });
   }, []);
 
@@ -45,11 +43,19 @@ const App = () => {
     setHomeError(msg);
   };
 
+  // For LLM modes: show loader → generate → start quiz
   const beginQuiz = (mode, data, config) => {
     setQuizData(data);
     setQuizConfig(config);
     setLoading(false);
     setHomeError(null);
+    setScreen(mode);
+  };
+
+  // For no-LLM modes: skip loader, start immediately
+  const beginQuizDirect = (mode, data, config) => {
+    setQuizData(data);
+    setQuizConfig(config);
     setScreen(mode);
   };
 
@@ -70,14 +76,12 @@ const App = () => {
   if (loading)              return <Loader message={loadingMsg} />;
 
   if (screen === 'settings') return (
-    <Settings
-      onHome={() => { setIsFirst(false); setScreen('home'); }}
-      isFirstLaunch={isFirstLaunch}
-    />
+    <Settings onHome={() => { setIsFirst(false); setScreen('home'); }} isFirstLaunch={isFirstLaunch} />
   );
   if (screen === 'home') return (
     <Main
       onStart={beginQuiz}
+      onStartDirect={beginQuizDirect}
       onStartLoading={startLoading}
       onError={stopLoadingWithError}
       errorMsg={homeError}
@@ -86,11 +90,16 @@ const App = () => {
       onSettings={() => setScreen('settings')}
     />
   );
-  if (screen === 'quiz')    return <Quiz      data={quizData} config={quizConfig} onFinish={finishQuiz} onHome={goHome} />;
-  if (screen === 'part6')   return <Part6Quiz data={quizData} config={quizConfig} onFinish={finishQuiz} onHome={goHome} />;
-  if (screen === 'part7')   return <Part7Quiz data={quizData} config={quizConfig} onFinish={finishQuiz} onHome={goHome} />;
-  if (screen === 'vocab')   return <WordDrill data={quizData} config={quizConfig} onFinish={finishQuiz} onHome={goHome} />;
-  if (screen === 'result')  return (
+
+  const quizProps = { data: quizData, config: quizConfig, onFinish: finishQuiz, onHome: goHome };
+  if (screen === 'quiz')        return <Quiz         {...quizProps} />;
+  if (screen === 'part6')       return <Part6Quiz    {...quizProps} />;
+  if (screen === 'part7')       return <Part7Quiz    {...quizProps} />;
+  if (screen === 'vocab')       return <WordDrill    {...quizProps} />;
+  if (screen === 'defmatch')    return <DefinitionMatch {...quizProps} />;
+  if (screen === 'reversedrill')return <ReverseDrill {...quizProps} />;
+
+  if (screen === 'result') return (
     <Result
       data={resultData}
       onHome={goHome}

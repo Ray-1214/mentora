@@ -65,10 +65,11 @@ const Settings = ({ onHome, isFirstLaunch }) => {
       {isFirstLaunch && (
         <div className="card" style={{ marginBottom: 20, borderLeft: '3px solid #1A1A1A' }}>
           <p style={{ fontSize: 14, lineHeight: 1.7 }}>
-            Welcome to <strong>TOEIC Drill</strong>. Enter your LLM API settings to get started.
+            Welcome to <strong>Test Drill</strong>. Enter your LLM API settings to get started.
             <br />
             <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>
-              東海大學使用者：API Key 從 <a href="https://llmapi.service.thu.edu.tw/tutorial" target="_blank" rel="noreferrer" style={{ color: 'inherit' }}>llmapi.service.thu.edu.tw</a> 取得
+              Tunghai University users: get your API Key at{' '}
+              <a href="https://llmapi.service.thu.edu.tw/tutorial" target="_blank" rel="noreferrer" style={{ color: 'inherit' }}>llmapi.service.thu.edu.tw</a>
             </span>
           </p>
         </div>
@@ -189,16 +190,7 @@ const Settings = ({ onHome, isFirstLaunch }) => {
   );
 };
 
-const inputStyle = {
-  width: '100%',
-  padding: '10px 12px',
-  border: '1px solid var(--border)',
-  borderRadius: 'var(--radius-sm)',
-  fontSize: 14,
-  fontFamily: 'var(--font)',
-  background: 'var(--surface)',
-  color: 'var(--text-primary)',
-  outline: 'none',
-};
+// Input styles are handled by global CSS (input[type="text"], input[type="password"])
+const inputStyle = {};
 
 export default Settings;

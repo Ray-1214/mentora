@@ -92,17 +92,17 @@ export function selectDistractors(answerWord, bank, exam, count = 3) {
 // ── Exam helpers ──────────────────────────────────────────────────────────────
 
 export const EXAM_LABELS = {
-  TOEIC: '多益 TOEIC',
-  TOEFL: '托福 TOEFL',
-  IELTS: '雅思 IELTS',
-  '學測': '學測',
+  TOEIC:  'TOEIC',
+  TOEFL:  'TOEFL',
+  IELTS:  'IELTS',
+  '學測': 'GSAT',   // General Scholastic Ability Test (Taiwan)
 };
 
 export const EXAM_CONTEXT = {
-  TOEIC: 'business and office communication contexts (authentic TOEIC format)',
-  TOEFL: 'academic reading and university-level contexts (TOEFL iBT format)',
-  IELTS: 'general and academic English contexts (IELTS reading format)',
-  '學測': 'high school and academic English contexts (Taiwan 學測 format)',
+  TOEIC:  'business and office communication contexts (TOEIC format)',
+  TOEFL:  'academic and university-level contexts (TOEFL iBT format)',
+  IELTS:  'general and academic English contexts (IELTS format)',
+  '學測': 'high school academic English contexts (Taiwan GSAT format)',
 };
 
 export const ALL_EXAMS = ['TOEIC', 'TOEFL', 'IELTS', '學測'];
