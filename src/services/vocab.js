@@ -8,36 +8,76 @@
 
 // ── Word selection ────────────────────────────────────────────────────────────
 
+// Base sampling weight per frequency_tier (1 = most important). A higher weight
+// means a word is more likely to be drawn. Tuned here so it is easy to adjust.
+const TIER_WEIGHT = { 1: 3, 2: 2, 3: 1 };
+
+/**
+ * Sampling weight for a single word. Always > 0.
+ * Favors important tiers, words seen less often as the answer, and words with a
+ * shorter correct streak (more likely still being learned). Missing stats/tier
+ * are treated as 0 / tier 3.
+ */
+function answerWeight(word, stats) {
+  const s = stats[word.word.toLowerCase()] || {};
+  const base = TIER_WEIGHT[word.frequency_tier] || 1;
+  return base / (1 + (s.times_as_answer || 0)) / (1 + (s.consecutive_corrects || 0));
+}
+
+/**
+ * Weighted random sampling without replacement using the numerically stable
+ * A-Res (Efraimidis–Spirakis) log form: each candidate gets a key of
+ * log(random) / weight, and we keep the `n` candidates with the largest keys.
+ * The result is selection probability proportional to weight, without
+ * replacement; the log form avoids the underflow of the u^(1/weight) form.
+ */
+function weightedSampleWithoutReplacement(candidates, stats, n) {
+  if (n <= 0) return [];
+  return candidates
+    .map(w => ({ w, key: Math.log(Math.random()) / answerWeight(w, stats) }))
+    .sort((a, b) => b.key - a.key)
+    .slice(0, n)
+    .map(x => x.w);
+}
+
 /**
  * Select `count` answer words for a drill batch.
- * Priority: non-mastered → lower frequency_tier → least seen → worst accuracy
+ *
+ * Uses weighted random sampling without replacement instead of a fixed sort, so
+ * words of equal priority no longer always emerge in database order (the old
+ * "top-down / monotonous" behavior). Higher-priority words are still more likely
+ * to be drawn — weight favors lower frequency_tier (3:2:1), less-seen words, and
+ * shorter correct streaks — so teaching priority is preserved while same-priority
+ * words get shuffled. For a brand-new user (empty stats) every weight collapses
+ * to its tier weight, giving a random draw within each tier and a 3:2:1 tier
+ * preference across tiers.
+ *
+ * When includeMastered is false, mastered words are kept as a separate fallback
+ * group: we sample from non-mastered words first and only top up from mastered
+ * words if there aren't enough non-mastered ones. When true, everything is one
+ * pool.
  */
 export function selectAnswerWords(bank, stats, count, { exam = null, includeMastered = false } = {}) {
-  let pool = exam ? bank.filter(w => w.exams && w.exams.includes(exam)) : [...bank];
+  const pool = exam ? bank.filter(w => w.exams && w.exams.includes(exam)) : [...bank];
 
-  pool.sort((a, b) => {
-    const sa = stats[a.word.toLowerCase()] || {};
-    const sb = stats[b.word.toLowerCase()] || {};
+  if (includeMastered) {
+    return weightedSampleWithoutReplacement(pool, stats, count);
+  }
 
-    // Mastered words go to the very end
-    const mA = !includeMastered && sa.mastered;
-    const mB = !includeMastered && sb.mastered;
-    if (mA !== mB) return mA ? 1 : -1;
+  // Split so mastered words can only ever serve as a "not enough" fallback,
+  // never mixed into the same draw as non-mastered words.
+  const notMastered = [];
+  const mastered = [];
+  for (const w of pool) {
+    const s = stats[w.word.toLowerCase()] || {};
+    (s.mastered ? mastered : notMastered).push(w);
+  }
 
-    // Frequency tier (1=most important first)
-    const tA = a.frequency_tier || 3, tB = b.frequency_tier || 3;
-    if (tA !== tB) return tA - tB;
-
-    // Least appeared as answer first
-    const ansA = sa.times_as_answer || 0, ansB = sb.times_as_answer || 0;
-    if (ansA !== ansB) return ansA - ansB;
-
-    // Worst consecutive_corrects first (more likely to still be struggling)
-    const ccA = sa.consecutive_corrects || 0, ccB = sb.consecutive_corrects || 0;
-    return ccA - ccB;
-  });
-
-  return pool.slice(0, count);
+  const picked = weightedSampleWithoutReplacement(notMastered, stats, count);
+  if (picked.length < count) {
+    picked.push(...weightedSampleWithoutReplacement(mastered, stats, count - picked.length));
+  }
+  return picked;
 }
 
 /**
