@@ -1,5 +1,7 @@
 // Unified storage service — uses electron-store via IPC in Electron, localStorage in browser.
 
+import { nextBox, dueFromBox } from './srs.js';
+
 const isElectron = Boolean(window.electronAPI);
 
 async function get(key) {
@@ -36,6 +38,8 @@ export async function getMasteryThreshold() {
 //   times_as_answer:         number,  — times shown as the correct answer
 //   mastered:                boolean, — true when consecutive_corrects >= threshold
 //   last_seen:               number,  — timestamp
+//   srs_box:                 number,  — Leitner box (0..N); +1 on correct, →0 on wrong
+//   srs_due:                 number,  — timestamp the word is next due for review
 // }
 
 export async function getWordStats() {
@@ -59,7 +63,7 @@ export async function updateWordStats(answerWord, distractorWords, userCorrect) 
   // 1. Increment option_appearance_count for ALL shown words
   for (const word of allShown) {
     const key = word.toLowerCase();
-    if (!stats[key]) stats[key] = { option_appearance_count: 0, consecutive_corrects: 0, times_as_answer: 0, mastered: false, last_seen: now };
+    if (!stats[key]) stats[key] = { option_appearance_count: 0, consecutive_corrects: 0, times_as_answer: 0, mastered: false, last_seen: now, srs_box: 0 };
     stats[key].option_appearance_count += 1;
     stats[key].last_seen = now;
   }
@@ -73,6 +77,12 @@ export async function updateWordStats(answerWord, distractorWords, userCorrect) 
   } else {
     stats[aKey].consecutive_corrects = 0;  // RESET on wrong answer
   }
+
+  // SRS (Leitner): only the answer word generates a review event — distractors
+  // aren't scheduled. Correct promotes a box, wrong drops to box 0; due is
+  // recomputed from the resulting box.
+  stats[aKey].srs_box = nextBox(stats[aKey].srs_box, userCorrect);
+  stats[aKey].srs_due = dueFromBox(stats[aKey].srs_box, now);
 
   await set('wordStats', stats);
   return stats[aKey];

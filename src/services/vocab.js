@@ -6,6 +6,8 @@
  * Stats are keyed by word.toLowerCase() so cross-exam duplicates share progress.
  */
 
+import { isDue } from './srs.js';
+
 // ── Word selection ────────────────────────────────────────────────────────────
 
 // Base sampling weight per frequency_tier (1 = most important). A higher weight
@@ -41,6 +43,28 @@ function weightedSampleWithoutReplacement(candidates, stats, n) {
 }
 
 /**
+ * SRS-aware draw: words that are due for review come first. We split the pool
+ * into due / not-due (a word with no srs_due is treated as due, so legacy stats
+ * still get picked), sample from the due group with the 1a weighted sampler, and
+ * only top up from the not-due group if there still aren't enough. `now` is
+ * injectable so tests can advance the clock.
+ */
+function dueFirstSample(pool, stats, count, now) {
+  const due = [];
+  const notDue = [];
+  for (const w of pool) {
+    const s = stats[w.word.toLowerCase()] || {};
+    (isDue(s.srs_due, now) ? due : notDue).push(w);
+  }
+
+  const picked = weightedSampleWithoutReplacement(due, stats, count);
+  if (picked.length < count) {
+    picked.push(...weightedSampleWithoutReplacement(notDue, stats, count - picked.length));
+  }
+  return picked;
+}
+
+/**
  * Select `count` answer words for a drill batch.
  *
  * Uses weighted random sampling without replacement instead of a fixed sort, so
@@ -52,16 +76,20 @@ function weightedSampleWithoutReplacement(candidates, stats, n) {
  * to its tier weight, giving a random draw within each tier and a 3:2:1 tier
  * preference across tiers.
  *
+ * On top of that (stage 1b) selection is SRS-aware: within the chosen group,
+ * words that are due for review (Leitner) are drawn before words that aren't yet
+ * due — see dueFirstSample.
+ *
  * When includeMastered is false, mastered words are kept as a separate fallback
  * group: we sample from non-mastered words first and only top up from mastered
  * words if there aren't enough non-mastered ones. When true, everything is one
  * pool.
  */
-export function selectAnswerWords(bank, stats, count, { exam = null, includeMastered = false } = {}) {
+export function selectAnswerWords(bank, stats, count, { exam = null, includeMastered = false, now = Date.now() } = {}) {
   const pool = exam ? bank.filter(w => w.exams && w.exams.includes(exam)) : [...bank];
 
   if (includeMastered) {
-    return weightedSampleWithoutReplacement(pool, stats, count);
+    return dueFirstSample(pool, stats, count, now);
   }
 
   // Split so mastered words can only ever serve as a "not enough" fallback,
@@ -73,7 +101,7 @@ export function selectAnswerWords(bank, stats, count, { exam = null, includeMast
     (s.mastered ? mastered : notMastered).push(w);
   }
 
-  const picked = weightedSampleWithoutReplacement(notMastered, stats, count);
+  const picked = dueFirstSample(notMastered, stats, count, now);
   if (picked.length < count) {
     picked.push(...weightedSampleWithoutReplacement(mastered, stats, count - picked.length));
   }

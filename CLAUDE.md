@@ -41,12 +41,15 @@ implementations, NOT a rewrite.
   `src/services/` — UI-framework-agnostic, so it survives the future mobile port untouched.
 - No direct `electron`/Node calls inside React components — go through a layer-2 service.
 - Comment any non-obvious logic. Match existing code style.
+- Cross-file relative imports inside `src/` always carry the `.js` extension (the Node
+  verification scripts run as native ESM and won't resolve extensionless paths; webpack is
+  unaffected).
 
 ## 5. Known issues to keep in mind
-- **Word selection is fully deterministic.** `src/services/vocab.js → selectAnswerWords`
-  sorts by fixed criteria with zero randomness, so same-condition words always emerge in
-  database order ("top-down" bug) and feel monotonous. Scheduled for replacement by
-  weighted-random sampling, then a proper SRS scheduler (see ROADMAP.md Stage 1).
+- **Word selection: weighted-random (1a) + Leitner SRS due-priority (1b), done.**
+  `src/services/vocab.js → selectAnswerWords` now uses weighted-random sampling (A-Res) and
+  draws due words first via the Leitner scheduler in `src/services/srs.js`. It accepts an
+  injectable `now` for testing.
 
 ## 6. How we work (this project's workflow)
 - Architecture/scope decisions are made in a separate **planning chat**, then recorded here

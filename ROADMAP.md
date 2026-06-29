@@ -8,9 +8,9 @@
 | 項目 | 內容 |
 |---|---|
 | 版本 | v1.0 |
-| 最後更新 | 2026-06-23 |
+| 最後更新 | 2026-06-29 |
 | 負責人 | Ray(架構 / 決策 / 測試);實作由 Claude Code |
-| 目前階段 | 階段 1b(SRS) |
+| 目前階段 | 階段 2(自訂單字範圍 / 匯入) |
 | 內部版本 | v2.1.0 |
 | 關鍵期限 | 報名截止 2026-10-05 ・ 初賽 10/13–23 ・ 決賽 11/07 |
 
@@ -30,7 +30,7 @@
 **競賽目標**:InnoServe 2026 教育 AI 組，做出完成度高、差異化清楚的桌面作品。
 **成功指標(可量測)**:
 - [x] 出題不再決定性(階段 1a:同條件 200 次抽 10 字 → ≥1000 種不同字)。**已達成(1888 種)。**
-- [ ] SRS 排程運作:答對的字在 due 之前不重複出現;due 的字優先出。
+- [x] SRS 排程運作:答對的字在 due 之前不重複出現;due 的字優先出。**已達成(test-stage1b-srs-scheduling.mjs 7 組全綠)。**
 - [ ] 弱點路由可量測:錯 N 次的字 / 文法點，在後續測驗的出現率顯著高於基準。
 - [ ] 使用者可自訂字表與範圍並持久化。
 - [ ] Demo 能在 3–5 分鐘內展示「生成題目 → 答題 → 弱點被記錄 → 下次自動加強」的完整循環。
@@ -88,16 +88,10 @@
 - 驗收結果:整庫 200×10 → 1888 種不同字(tier 41.4 / 36.8 / 21.8%);TOEIC 331 字全涵蓋;`npm run build` 通過。
 - 動到:`src/services/vocab.js`(僅 `selectAnswerWords` + 兩個 helper)。
 
-#### 1b 導入 SRS(間隔重複)— 狀態:☐ 未開始
-- **目標**:答對的字隔一段時間才再出現;到期(due)的字優先出題。取代「只看當下 consecutive_corrects」。
-- **範圍內**:選一個演算法(建議 FSRS，或先用較簡單的 Leitner / SM-2);為每個字維護排程狀態(下次 due 日、間隔、難度);選字時優先取 due 的字，再用 1a 的加權隨機在 due 池內打散。
-- **範圍外**:UI 大改、聽力、雲端同步。
-- **動到的檔(待確認)**:`vocab.js`(選字接 SRS)、`storage.js`(存排程狀態)、答題結算處(答對 / 錯後更新排程)。
-- **相依 / 我需要看的**:`storage.js` + 「答完題後更新單字 stats」那段程式。**開這個階段的對話時先貼給我。**
-- **驗收標準**:
-  1. 測試腳本模擬多天作答:某字答對後，在其 due 日之前不再被選中;到 due 後重新出現。
-  2. due 的字優先於未到期的字被選。
-  3. 既有 stats(`times_as_answer` 等)不破壞;`npm run build` 通過。
+#### 1b 導入 SRS(間隔重複)— ✅ 完成(2026-06-29)
+- 做了什麼:新增 `src/services/srs.js`(Leitner:`SRS_INTERVALS_DAYS=[0,1,2,4,7,14,30]`、`nextBox`/`dueFromBox`/`isDue`);`storage.js` 的 `updateWordStats()` 在答對/錯分支後、僅對答案字寫 `srs_box`/`srs_due`(誘答不排程);`vocab.js` 新增 `dueFirstSample`,選字 due 優先、不足才補未到期;1a 加權與 mastered 兩組語意不變。
+- 驗收結果:`test-stage1b-srs-scheduling.mjs` 7 組全綠;`npm run build` 通過(僅既有 CRA/browserslist 警告)。
+- 動到:`src/services/srs.js`(新)、`storage.js`(`updateWordStats` + shape 註解)、`vocab.js`(`selectAnswerWords` + `dueFirstSample`)。
 
 ### 階段 2 — 自訂單字範圍 / 匯入 — 狀態:☐ 未開始
 - **目標**:使用者可自定字表與出題範圍(不只內建庫)。
