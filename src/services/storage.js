@@ -182,6 +182,67 @@ export async function clearExtendedVocab() {
   await del('extendedVocab');
 }
 
+// ── Custom vocab lists (user-named word lists) ────────────────────────────────
+// Separate from extendedVocab (which is LLM-generated additions to the built-in
+// bank). Each list is a named scope the user can drill on directly.
+// Shape: { id, name, createdAt, words: [ …vocab.json-shaped objects… ] }
+
+export async function getCustomVocabLists() {
+  return (await get('customVocabLists')) || [];
+}
+
+export async function createCustomVocabList(name) {
+  const lists   = await getCustomVocabLists();
+  const newList = {
+    id:        `custom_${Date.now()}`,
+    name:      (name && name.trim()) || `My List ${lists.length + 1}`,
+    createdAt: Date.now(),
+    words:     [],
+  };
+  lists.push(newList);
+  await set('customVocabLists', lists);
+  return newList;
+}
+
+/**
+ * Merge `words` into the list `listId`, de-duping against that list's existing
+ * words by word.toLowerCase() (lists don't de-dupe against each other).
+ * Throws if the list doesn't exist. Returns the updated list.
+ */
+export async function importWordsToList(listId, words) {
+  const lists = await getCustomVocabLists();
+  const list  = lists.find(l => l.id === listId);
+  if (!list) throw new Error(`List not found: ${listId}`);
+
+  const existing = new Set(list.words.map(w => w.word.toLowerCase()));
+  for (const w of words) {
+    const key = w.word.toLowerCase();
+    if (existing.has(key)) continue;
+    existing.add(key);
+    list.words.push(w);
+  }
+
+  await set('customVocabLists', lists);
+  return list;
+}
+
+export async function deleteCustomVocabList(listId) {
+  const lists     = await getCustomVocabLists();
+  const remaining = lists.filter(l => l.id !== listId);
+  await set('customVocabLists', remaining);
+  return remaining;
+}
+
+// ── Vocab scope (which bank the drills pull from) ─────────────────────────────
+export async function getVocabScope() {
+  return (await get('vocabScope')) || { source: 'builtin', customListId: null };
+}
+
+export async function setVocabScope(scope) {
+  await set('vocabScope', scope);
+  return scope;
+}
+
 // ── API Settings ──────────────────────────────────────────────────────────────
 export async function getSettings() {
   return (await get('apiSettings')) || {};

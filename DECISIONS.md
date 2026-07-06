@@ -17,3 +17,6 @@
 | 10 | 2026-06-23 | Project 連 GitHub:只連 `CLAUDE.md` / `ROADMAP.md` / `DECISIONS.md`，不連 `src/` | 新對話需要這些 docs 接手;`src/` 太大(116%)且會過期，程式碼交給 Claude Code | 生效 |
 | 11 | 2026-06-29 | SRS 採 Leitner(階梯 [0,1,2,4,7,14,30] 天、答錯歸第 0 格) | 輸入為二元對/錯,SM-2/FSRS 需分級回憶品質、不契合;Leitner 狀態最小、可測、可解釋。SM-2/FSRS 列日後升級(srs.js 已隔離,屆時只換該檔) | 生效 |
 | 12 | 2026-06-29 | src/ 內跨檔相對 import 一律帶 .js 副檔名 | node 驗收腳本走原生 ESM,無副檔名解析不到;webpack build 不受影響 | 生效 |
+| 13 | 2026-07-06 | 自訂單字匯入格式=純貼上 + 寬鬆行導向 parser(一行一字、分隔符取最先出現的 , / Tab / ， / :);無檔案選擇器、無表頭偵測 | 純貼上最快可 demo、跨平台無檔案 API 依賴(利手機移植);寬鬆 parser 容忍使用者從課本 / 補習班隨手複製 | 生效 |
+| 14 | 2026-07-06 | 資料模型:自訂字表用 `customVocabLists`(具名表陣列)+ `vocabScope`(目前範圍)雙 key,與 `extendedVocab` 分離 | `extendedVocab` 是「LLM 擴充內建庫」、自訂表是「使用者具名範圍」,語意不同;分 key 避免互相汙染、各自去重 | 生效 |
+| 15 | 2026-07-06 | scope 採 Scope-Narrow(只作用 vocab / defmatch / reversedrill 三個 drill 模式)+ 接線走 Path 1(接進既有 `sortVocab`,不把 drills 遷移到 `selectAnswerWords`) | 最小變更、風險低、當天可 demo;Part 5/6/7 主題導向不受自訂範圍影響。已知待辦:1a/1b 的加權隨機 + SRS 尚未接進 drills(仍走 sortVocab),列後續任務 | 生效 |

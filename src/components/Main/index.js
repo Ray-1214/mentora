@@ -5,6 +5,7 @@ import { selectAnswerWords, selectDistractors, ALL_EXAMS, EXAM_LABELS } from '..
 import {
   getWordStats, getExtendedVocab,
   getMasteredCount, getWeakGrammarPoints, getWeakVocabWords,
+  getVocabScope, getCustomVocabLists,
 } from '../../services/storage';
 import { shuffle } from '../../utils';
 
@@ -55,7 +56,7 @@ function sortVocab(words, stats, masteredSet, includeMastered) {
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
-const Main = ({ onStart, onStartDirect, onStartLoading, onError, errorMsg, onReview, onVocabManager, onSettings }) => {
+const Main = ({ onStart, onStartDirect, onStartLoading, onError, errorMsg, onReview, onVocabManager, onCustomVocab, onSettings }) => {
   const [exam,            setExam]           = useState('TOEIC');
   const [mode,            setMode]           = useState('quiz');
   const [topics,          setTopics]         = useState(['business']);
@@ -64,13 +65,28 @@ const Main = ({ onStart, onStartDirect, onStartLoading, onError, errorMsg, onRev
   const [includeMastered, setIncludeMastered]= useState(false);
   const [vocabBank,       setVocabBank]      = useState(baseVocab);
   const [masteredCount,   setMasteredCount]  = useState(0);
+  const [scope,           setScope]          = useState({ source: 'builtin', customListId: null });
+  const [customLists,     setCustomLists]    = useState([]);
 
   useEffect(() => {
     getExtendedVocab().then(ext => {
       setVocabBank(ext.length > 0 ? [...baseVocab, ...ext] : baseVocab);
     });
     getMasteredCount().then(setMasteredCount);
+    // Re-read on mount so returning from the My Word Lists page reflects changes.
+    getVocabScope().then(setScope);
+    getCustomVocabLists().then(setCustomLists);
   }, []);
+
+  // Active custom list (if the scope points at one). A custom list overrides the
+  // exam filter for the drill modes; the meaning-based modes need Chinese words.
+  const activeCustomList = scope.source === 'custom' && scope.customListId
+    ? customLists.find(l => l.id === scope.customListId)
+    : null;
+  const customZhCount = activeCustomList
+    ? activeCustomList.words.filter(w => w.meaning_zh && w.meaning_zh.length > 3).length
+    : null;
+  const meaningModesDisabled = activeCustomList != null && customZhCount === 0;
 
   const toggleTopic = (id) => {
     setTopics(prev =>
@@ -89,7 +105,24 @@ const Main = ({ onStart, onStartDirect, onStartLoading, onError, errorMsg, onRev
 
     try {
       const config     = { mode, topics, count, difficulty, exam };
-      const examBank   = vocabBank.filter(w => w.exams?.includes(exam));
+
+      // Resolve the active vocab scope. A custom list IS its own range, so we
+      // drop exam filtering (activeExam=null) but still run the built-in
+      // sortVocab teaching order. Missing/empty list → silently keep built-in.
+      const scope = await getVocabScope();
+      let activeBank = vocabBank;   // built-in (may already include extendedVocab)
+      let activeExam = exam;
+      if (scope.source === 'custom' && scope.customListId) {
+        const lists = await getCustomVocabLists();
+        const list  = lists.find(l => l.id === scope.customListId);
+        if (list && list.words.length > 0) {
+          activeBank = list.words;
+          activeExam = null;        // custom list is the range → bypass exam filter
+        }
+      }
+      const examBank = activeExam
+        ? activeBank.filter(w => w.exams?.includes(activeExam))
+        : [...activeBank];          // custom: no exam filtering
 
       // ── No-LLM modes (instant) ───────────────────────────────────────────
       if (mode === 'defmatch') {
@@ -101,9 +134,30 @@ const Main = ({ onStart, onStartDirect, onStartLoading, onError, errorMsg, onRev
         );
         const answerWords = sortedBank.slice(0, count);
         const distractorPool = examBank.filter(w => w.meaning_zh && w.meaning_zh.length > 3);
+        const isCustom = scope.source === 'custom' && activeExam === null;
 
         const data = answerWords.map(aw => {
-          const wrongs = selectDistractors(aw, distractorPool, exam, 3);
+          let wrongs = selectDistractors(aw, distractorPool, activeExam, 3, vocabBank);
+
+          // Custom lists may repeat a Chinese meaning, which would make two
+          // options identical and break the string-based answer check. Keep only
+          // wrongs whose meaning differs from the correct one and each other,
+          // topping up from the pool; tolerate fewer options for tiny lists.
+          if (isCustom) {
+            const seen = new Set([aw.meaning_zh]);
+            const unique = [];
+            for (const w of wrongs) {
+              if (w.meaning_zh && !seen.has(w.meaning_zh)) { seen.add(w.meaning_zh); unique.push(w); }
+            }
+            if (unique.length < 3) {
+              for (const w of distractorPool.slice().sort(() => Math.random() - 0.5)) {
+                if (unique.length >= 3) break;
+                if (w.meaning_zh && !seen.has(w.meaning_zh)) { seen.add(w.meaning_zh); unique.push(w); }
+              }
+            }
+            wrongs = unique.length ? unique : wrongs;
+          }
+
           return {
             word:            aw.word,
             wordId:          aw.id,
@@ -129,7 +183,7 @@ const Main = ({ onStart, onStartDirect, onStartLoading, onError, errorMsg, onRev
         const answerWords = sortedBank.slice(0, count);
 
         const data = answerWords.map(aw => {
-          const wrongs = selectDistractors(aw, examBank, exam, 3);
+          const wrongs = selectDistractors(aw, examBank, activeExam, 3, vocabBank);
           return {
             meaning:         aw.meaning_zh,
             correct_word:    aw.word,
@@ -181,7 +235,7 @@ const Main = ({ onStart, onStartDirect, onStartLoading, onError, errorMsg, onRev
         const answers = sorted.slice(0, count);
         const wd      = answers.map(aw => ({
           answerWord:  aw,
-          distractors: selectDistractors(aw, examBank, exam, 3),
+          distractors: selectDistractors(aw, examBank, activeExam, 3, vocabBank),
         }));
         const questions = await generateVocabQuestions(wd, exam, difficulty);
         onStart('vocab', questions.map((q, i) => {
@@ -246,17 +300,47 @@ const Main = ({ onStart, onStartDirect, onStartLoading, onError, errorMsg, onRev
         </div>
       </div>
 
+      {/* Vocab range — a custom list overrides the exam filter for the drill modes */}
+      <div className="config-section">
+        <span className="config-label">Vocab Range</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <span className="chip selected" style={{ cursor: 'default' }}>
+            {activeCustomList ? `Custom: ${activeCustomList.name}` : 'Built-in bank'}
+          </span>
+          {activeCustomList && (
+            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+              {activeCustomList.words.length.toLocaleString()} words · exam filter off
+            </span>
+          )}
+          <button className="btn btn-ghost btn-sm" onClick={onCustomVocab}>Manage lists</button>
+        </div>
+        {meaningModesDisabled && (
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6 }}>
+            This list has no Chinese translations; only Word Drill is available.
+          </p>
+        )}
+      </div>
+
       {/* Mode grid */}
       <div className="config-section">
         <span className="config-label">Mode</span>
         <div className="mode-grid">
-          {MODES.map(m => (
-            <button key={m.id} className={`mode-card${mode === m.id ? ' selected' : ''}`} onClick={() => setMode(m.id)}>
-              {!m.llm && <div className="mode-badge">Instant ✦</div>}
-              <div className="mode-title">{m.title}</div>
-              <div className="mode-desc">{m.desc}</div>
-            </button>
-          ))}
+          {MODES.map(m => {
+            const disabled = meaningModesDisabled && (m.id === 'defmatch' || m.id === 'reversedrill');
+            return (
+              <button
+                key={m.id}
+                className={`mode-card${mode === m.id ? ' selected' : ''}`}
+                onClick={() => setMode(m.id)}
+                disabled={disabled}
+                title={disabled ? 'This list has no Chinese translations; only Word Drill is available' : undefined}
+              >
+                {!m.llm && <div className="mode-badge">Instant ✦</div>}
+                <div className="mode-title">{m.title}</div>
+                <div className="mode-desc">{disabled ? 'Needs Chinese translations' : m.desc}</div>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -322,6 +406,7 @@ const Main = ({ onStart, onStartDirect, onStartLoading, onError, errorMsg, onRev
           {isNoLLM ? 'Start →' : 'Generate & Start →'}
         </button>
         <button className="btn btn-ghost" onClick={onReview}>Review Notebook</button>
+        <button className="btn btn-ghost" onClick={onCustomVocab}>My Word Lists</button>
         <button className="btn btn-ghost" onClick={onVocabManager}>
           Vocab Bank ({vocabBank.length.toLocaleString()})
         </button>

@@ -111,8 +111,12 @@ export function selectAnswerWords(bank, stats, count, { exam = null, includeMast
 /**
  * Select `count` distractor words for a given answer word.
  * Prefers: same exam, same POS, tier 1-2 words (familiar but wrong)
+ *
+ * `fallbackBank` (defaults to `bank`) is the pool used only for the final
+ * top-up when the primary bank can't supply enough options — e.g. a small
+ * custom list passes the built-in bank here so it can still fill 4 choices.
  */
-export function selectDistractors(answerWord, bank, exam, count = 3) {
+export function selectDistractors(answerWord, bank, exam, count = 3, fallbackBank = bank) {
   const answerKey = answerWord.word.toLowerCase();
 
   // Candidates: same exam (or any if not enough), exclude answer word
@@ -145,9 +149,9 @@ export function selectDistractors(answerWord, bank, exam, count = 3) {
     if (!seen.has(key)) { seen.add(key); result.push(w); }
   }
 
-  // Final fallback: any word from bank
+  // Final fallback: any word from fallbackBank (built-in bank for custom scope)
   if (result.length < count) {
-    for (const w of bank.sort(() => Math.random() - 0.5)) {
+    for (const w of fallbackBank.sort(() => Math.random() - 0.5)) {
       if (result.length >= count) break;
       const key = w.word.toLowerCase();
       if (!seen.has(key)) { seen.add(key); result.push(w); }

@@ -9,12 +9,13 @@ import ReverseDrill from '../ReverseDrill';
 import Result from '../Result';
 import Review from '../Review';
 import VocabManager from '../VocabManager';
+import CustomVocab from '../CustomVocab';
 import Settings from '../Settings';
 import Loader from '../Loader';
 import { hasApiKey } from '../../services/storage';
 
 // screen: 'loading'|'settings'|'home'|'quiz'|'part6'|'part7'|'vocab'
-//         |'defmatch'|'reversedrill'|'result'|'review'|'vocabmanager'
+//         |'defmatch'|'reversedrill'|'result'|'review'|'vocabmanager'|'customvocab'
 const App = () => {
   const [screen,       setScreen]      = useState('loading');
   const [isFirstLaunch,setIsFirst]     = useState(false);
@@ -87,6 +88,7 @@ const App = () => {
       errorMsg={homeError}
       onReview={() => setScreen('review')}
       onVocabManager={() => setScreen('vocabmanager')}
+      onCustomVocab={() => setScreen('customvocab')}
       onSettings={() => setScreen('settings')}
     />
   );
@@ -109,6 +111,7 @@ const App = () => {
   );
   if (screen === 'review')       return <Review       onHome={goHome} />;
   if (screen === 'vocabmanager') return <VocabManager onHome={goHome} />;
+  if (screen === 'customvocab')  return <CustomVocab  onHome={goHome} />;
 
   return null;
 };

@@ -8,9 +8,9 @@
 | 項目 | 內容 |
 |---|---|
 | 版本 | v1.0 |
-| 最後更新 | 2026-06-29 |
+| 最後更新 | 2026-07-06 |
 | 負責人 | Ray(架構 / 決策 / 測試);實作由 Claude Code |
-| 目前階段 | 階段 2(自訂單字範圍 / 匯入) |
+| 目前階段 | 階段 3(錯題本強化 + 弱點路由) |
 | 內部版本 | v2.1.0 |
 | 關鍵期限 | 報名截止 2026-10-05 ・ 初賽 10/13–23 ・ 決賽 11/07 |
 
@@ -29,10 +29,10 @@
 ## 2. 目標與成功指標
 **競賽目標**:InnoServe 2026 教育 AI 組，做出完成度高、差異化清楚的桌面作品。
 **成功指標(可量測)**:
-- [x] 出題不再決定性(階段 1a:同條件 200 次抽 10 字 → ≥1000 種不同字)。**已達成(1888 種)。**
-- [x] SRS 排程運作:答對的字在 due 之前不重複出現;due 的字優先出。**已達成(test-stage1b-srs-scheduling.mjs 7 組全綠)。**
+- [x] 出題不再決定性(階段 1a:同條件 200 次抽 10 字 → ≥1000 種不同字)。**已達成(1888 種)。**（註:函式層通過隔離測試;尚未接進實際 drills(走 sortVocab),drills 整合列後續任務。）
+- [x] SRS 排程運作:答對的字在 due 之前不重複出現;due 的字優先出。**已達成(test-stage1b-srs-scheduling.mjs 7 組全綠)。**（註:同上——函式層通過隔離測試;尚未接進實際 drills(走 sortVocab),drills 整合列後續任務。）
 - [ ] 弱點路由可量測:錯 N 次的字 / 文法點，在後續測驗的出現率顯著高於基準。
-- [ ] 使用者可自訂字表與範圍並持久化。
+- [x] 使用者可自訂字表與範圍並持久化。**已達成(階段 2:customVocabLists + vocabScope;三個 drill 模式接自訂範圍)。**
 - [ ] Demo 能在 3–5 分鐘內展示「生成題目 → 答題 → 弱點被記錄 → 下次自動加強」的完整循環。
 
 ## 3. 使用者與使用情境
@@ -93,13 +93,11 @@
 - 驗收結果:`test-stage1b-srs-scheduling.mjs` 7 組全綠;`npm run build` 通過(僅既有 CRA/browserslist 警告)。
 - 動到:`src/services/srs.js`(新)、`storage.js`(`updateWordStats` + shape 註解)、`vocab.js`(`selectAnswerWords` + `dueFirstSample`)。
 
-### 階段 2 — 自訂單字範圍 / 匯入 — 狀態:☐ 未開始
-- **目標**:使用者可自定字表與出題範圍(不只內建庫)。
-- **競賽角度**:個人化、貼合「我的課本 / 補習班範圍」。
-- **範圍內**:建立 / 命名自訂字表;從貼上文字或檔案匯入;在首頁把自訂表選為出題範圍;持久化。
-- **動到的檔(待確認)**:`VocabManager`、`storage.js`、首頁範圍選擇。
-- **相依 / 我需要看的**:`VocabManager` 元件 + 既有 `extendedVocab` 儲存邏輯。
-- **驗收標準**:建立一個自訂表 → 匯入 N 字 → 選它出題 → 重啟後仍在 → 出題只出該範圍。
+### 階段 2 — 自訂單字範圍 / 匯入 — ✅ 完成(2026-07-06)
+- 做了什麼:新增 `src/services/vocabImport.js`(純函式 `parseVocabText` — 一行一字、寬鬆行導向 parser,分隔符取「最先出現」的半形逗號 / Tab / 全形逗號 / 半形冒號,正規化成 vocab.json schema、去重、`frequency_tier:2` 讓自訂字進干擾詞池);`storage.js` 新增 `customVocabLists` + `vocabScope` 雙 key 的 CRUD;`vocab.js` 的 `selectDistractors` 加選填第 5 參 `fallbackBank`(小自訂表用內建庫補滿 4 選項);`Main/index.js` 依 scope 算 `activeBank`/`activeExam`(custom 繞過 exam 過濾、仍走 sortVocab),三個 drill 模式(vocab / defmatch / reversedrill)改用之,`selectAnswerWords`/quiz/part6/part7 不動;defmatch 於 custom scope 對重複中文選項去重;新 UI `CustomVocab` 元件(建立 / 匯入 / 選為範圍 / 刪除)+ 首頁範圍顯示與「缺中文→disable 兩個中文模式」。
+- 驗收結果:`parseVocabText` 分隔符 / 去重 / trim 隔離驗證通過;`npm run build` 通過(僅既有 CRA/browserslist 警告)。**Ray 另跑附帶 node 測試腳本最終驗收。**
+- 動到:`src/services/vocabImport.js`(新)、`storage.js`(custom lists + scope)、`vocab.js`(`selectDistractors` 第 5 參)、`Main/index.js`(scope 接線 + 首頁顯示 / disable)、`App/index.js`(路由)、`CustomVocab/index.js`(新)。
+- 已知待辦:1a/1b 的加權隨機 + SRS 尚未接進三個 drill 模式(它們仍走 `sortVocab`);drills 整合列後續任務。
 
 ### 階段 3 — 錯題本強化 + 弱點路由 — 狀態:☐ 未開始
 - **目標**:把「弱點分析 → 自動排進下次出題」做紮實。**這是『個人化家教』的核心賣點。**
@@ -125,7 +123,6 @@
 
 ## 10. 開放問題
 - 1b 用 FSRS 還是先 Leitner / SM-2?(看 storage 結構與時間成本後定)
-- 自訂單字匯入支援哪些格式(純貼上 / CSV / txt)?
 - 聽力 TTS 來源(線上 API vs 本機)?
 - 競賽企劃書要不要做雙語介面展示(目前全英文 UI)?
 
