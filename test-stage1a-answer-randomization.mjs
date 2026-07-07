@@ -3,7 +3,7 @@
 // 目的：驗證 selectAnswerWords() 的「單字由上往下出 + 單調」是否修好。
 //
 // 用法：
-//   1. 把本檔放在 repo 根目錄（與 src/ 同層）。放 scripts/ 也行，腳本會自己找。
+//   1. 把本檔放在 repo 根目錄（與 src/ 同層）後執行。
 //   2. 在 repo 根目錄執行：
 //        node test-stage1a-answer-randomization.mjs
 //   3. 可選參數：
@@ -16,15 +16,15 @@
 //   - 兩次都會印出各 frequency_tier 的被選比例，確認「教學優先序」沒被破壞
 //     （tier 1 應該被選最多）。
 //
-// 原理：本腳本載入「真正的」src/services/vocab.js（複製成暫存 .mjs 再 import，
-//       繞過 CRA 的 CommonJS 模組判定），所以測的是實際程式，不是副本。
-//       只需要 Node 18+，不需安裝任何套件。
+// 原理：本腳本直接就地 import「真正的」src/services/vocab.js（與 test-stage1b/2/3
+//       相同做法；Node 偵測到 ESM 語法會自動以 ES module 載入,連同 vocab.js 依賴的
+//       ./srs.js 一併解析），所以測的是實際程式，不是副本。只需要 Node 18+，不需套件。
 // ===========================================================================
 
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { selectAnswerWords } from './src/services/vocab.js';
+import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -45,20 +45,7 @@ function resolveFirst(candidates) {
   return null;
 }
 
-// ── 載入真正的 vocab.js（複製成暫存 .mjs 再 import）────────────────────────
-const vocabPath = resolveFirst([
-  join(__dirname, 'src', 'services', 'vocab.js'),
-  join(__dirname, '..', 'src', 'services', 'vocab.js'),
-]);
-if (!vocabPath) {
-  console.error('✗ 找不到 src/services/vocab.js');
-  console.error('  請把本檔放在 repo 根目錄（與 src/ 同層）後再執行。');
-  process.exit(1);
-}
-const tmpFile = join(tmpdir(), `vocab-test-${Date.now()}.mjs`);
-writeFileSync(tmpFile, readFileSync(vocabPath, 'utf8'));
-const { selectAnswerWords } = await import(pathToFileURL(tmpFile).href);
-
+// ── vocab.js 直接就地 import（見檔頭「原理」）──────────────────────────────
 if (typeof selectAnswerWords !== 'function') {
   console.error('✗ vocab.js 沒有匯出 selectAnswerWords，請確認檔案內容。');
   process.exit(1);

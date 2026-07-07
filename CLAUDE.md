@@ -50,6 +50,12 @@ implementations, NOT a rewrite.
   `src/services/vocab.js → selectAnswerWords` now uses weighted-random sampling (A-Res) and
   draws due words first via the Leitner scheduler in `src/services/srs.js`. It accepts an
   injectable `now` for testing.
+- **Part 5 custom-scope routing gap (fix at W8 polish).** Main.handleStart's quiz branch calls
+  selectAnswerWords(..., { exam }) with the original `exam`, not `activeExam`. Under a custom vocab
+  scope activeExam is null and examBank is already unfiltered, so this re-filters by w.exams and
+  drops imported words lacking an `exams` field — Part 5 priorityWords silently degrades to just
+  weakWords.slice(0,5) (no crash). Fix: pass `activeExam`, or omit `exam` since examBank is already
+  scope-resolved; add a payload test asserting priorityWords isn't emptied under custom scope.
 
 ## 6. How we work (this project's workflow)
 - Architecture/scope decisions are made in a separate **planning chat**, then recorded here
