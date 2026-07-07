@@ -19,4 +19,8 @@
 | 12 | 2026-06-29 | src/ 內跨檔相對 import 一律帶 .js 副檔名 | node 驗收腳本走原生 ESM,無副檔名解析不到;webpack build 不受影響 | 生效 |
 | 13 | 2026-07-06 | 自訂單字匯入格式=純貼上 + 寬鬆行導向 parser(一行一字、分隔符取最先出現的 , / Tab / ， / :);無檔案選擇器、無表頭偵測 | 純貼上最快可 demo、跨平台無檔案 API 依賴(利手機移植);寬鬆 parser 容忍使用者從課本 / 補習班隨手複製 | 生效 |
 | 14 | 2026-07-06 | 資料模型:自訂字表用 `customVocabLists`(具名表陣列)+ `vocabScope`(目前範圍)雙 key,與 `extendedVocab` 分離 | `extendedVocab` 是「LLM 擴充內建庫」、自訂表是「使用者具名範圍」,語意不同;分 key 避免互相汙染、各自去重 | 生效 |
-| 15 | 2026-07-06 | scope 採 Scope-Narrow(只作用 vocab / defmatch / reversedrill 三個 drill 模式)+ 接線走 Path 1(接進既有 `sortVocab`,不把 drills 遷移到 `selectAnswerWords`) | 最小變更、風險低、當天可 demo;Part 5/6/7 主題導向不受自訂範圍影響。已知待辦:1a/1b 的加權隨機 + SRS 尚未接進 drills(仍走 sortVocab),列後續任務 | 生效 |
+| 15 | 2026-07-06 | scope 採 Scope-Narrow(只作用 vocab / defmatch / reversedrill 三個 drill 模式)+ 接線走 Path 1(接進既有 `sortVocab`,不把 drills 遷移到 `selectAnswerWords`) | 最小變更、風險低、當天可 demo;Part 5/6/7 主題導向不受自訂範圍影響。已知待辦:1a/1b 的加權隨機 + SRS 尚未接進 drills(仍走 sortVocab),列後續任務 | 生效(Scope-Narrow 仍成立;接線機制由 #16 取代:drills 改走 selectAnswerWords、sortVocab 已刪) |
+| 16 | 2026-07-07 | 三個 drill 模式改由 `vocab.js` 的 `selectAnswerWords` 選答案字(加權隨機 + Leitner SRS + 弱點 bonus),私有 `sortVocab` 刪除 | 1a/1b + 弱點路由必須真正作用到 drills;選字邏輯收斂為 services 內單一路徑(CLAUDE.md §4)。取代 #15 的 drill-side `sortVocab` 接線 | 生效 |
+| 17 | 2026-07-07 | 弱點單字訊號由僅 `'Vocabulary'` 擴為三個 drill quizType(Vocabulary / Definition Match / Reverse Drill),視窗 -60 → -120 | DefinitionMatch / ReverseDrill 的錯題原本有記錄卻未被路由;三模式共用同一弱點訊號(順帶豐富 Part 5 priorityWords) | 生效 |
+| 18 | 2026-07-07 | 弱點加權 `WEAK_BONUS = 4`(在 `answerWeight` 內乘法生效) | 需克服 `times_as_answer` 對已練字的壓抑;實測 uplift ~3.5x、control ~1x(test-stage3-weakness-routing.mjs) | 生效 |
+| 19 | 2026-07-07 | Part 5 prompt 組裝抽到純函式 `buildPart5Prompt`(`part5Prompt.js`,無 SDK) | 讓弱點 payload 可在無 LLM 下被測(Track B);LLM 產出的遵從度仍無法單元測試 | 生效 |

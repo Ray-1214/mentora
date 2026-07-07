@@ -14,16 +14,22 @@ import { isDue } from './srs.js';
 // means a word is more likely to be drawn. Tuned here so it is easy to adjust.
 const TIER_WEIGHT = { 1: 3, 2: 2, 3: 1 };
 
+// Multiplicative boost for words flagged weak in the notebook; tuned so weak
+// words are drawn materially more often even though their times_as_answer
+// suppresses them.
+const WEAK_BONUS = 4;
+
 /**
  * Sampling weight for a single word. Always > 0.
  * Favors important tiers, words seen less often as the answer, and words with a
  * shorter correct streak (more likely still being learned). Missing stats/tier
- * are treated as 0 / tier 3.
+ * are treated as 0 / tier 3. Words in `weakSet` get a WEAK_BONUS multiplier.
  */
-function answerWeight(word, stats) {
+function answerWeight(word, stats, weakSet) {
   const s = stats[word.word.toLowerCase()] || {};
   const base = TIER_WEIGHT[word.frequency_tier] || 1;
-  return base / (1 + (s.times_as_answer || 0)) / (1 + (s.consecutive_corrects || 0));
+  const boost = (weakSet && weakSet.has(word.word.toLowerCase())) ? WEAK_BONUS : 1;
+  return base * boost / (1 + (s.times_as_answer || 0)) / (1 + (s.consecutive_corrects || 0));
 }
 
 /**
@@ -33,10 +39,10 @@ function answerWeight(word, stats) {
  * The result is selection probability proportional to weight, without
  * replacement; the log form avoids the underflow of the u^(1/weight) form.
  */
-function weightedSampleWithoutReplacement(candidates, stats, n) {
+function weightedSampleWithoutReplacement(candidates, stats, n, weakSet) {
   if (n <= 0) return [];
   return candidates
-    .map(w => ({ w, key: Math.log(Math.random()) / answerWeight(w, stats) }))
+    .map(w => ({ w, key: Math.log(Math.random()) / answerWeight(w, stats, weakSet) }))
     .sort((a, b) => b.key - a.key)
     .slice(0, n)
     .map(x => x.w);
@@ -49,7 +55,7 @@ function weightedSampleWithoutReplacement(candidates, stats, n) {
  * only top up from the not-due group if there still aren't enough. `now` is
  * injectable so tests can advance the clock.
  */
-function dueFirstSample(pool, stats, count, now) {
+function dueFirstSample(pool, stats, count, now, weakSet) {
   const due = [];
   const notDue = [];
   for (const w of pool) {
@@ -57,9 +63,9 @@ function dueFirstSample(pool, stats, count, now) {
     (isDue(s.srs_due, now) ? due : notDue).push(w);
   }
 
-  const picked = weightedSampleWithoutReplacement(due, stats, count);
+  const picked = weightedSampleWithoutReplacement(due, stats, count, weakSet);
   if (picked.length < count) {
-    picked.push(...weightedSampleWithoutReplacement(notDue, stats, count - picked.length));
+    picked.push(...weightedSampleWithoutReplacement(notDue, stats, count - picked.length, weakSet));
   }
   return picked;
 }
@@ -84,12 +90,16 @@ function dueFirstSample(pool, stats, count, now) {
  * group: we sample from non-mastered words first and only top up from mastered
  * words if there aren't enough non-mastered ones. When true, everything is one
  * pool.
+ *
+ * `weakWords` (from the mistake notebook) get a WEAK_BONUS weight so struggled
+ * words resurface more often. Empty weakWords => today's behavior exactly.
  */
-export function selectAnswerWords(bank, stats, count, { exam = null, includeMastered = false, now = Date.now() } = {}) {
+export function selectAnswerWords(bank, stats, count, { exam = null, includeMastered = false, now = Date.now(), weakWords = [] } = {}) {
   const pool = exam ? bank.filter(w => w.exams && w.exams.includes(exam)) : [...bank];
+  const weakSet = new Set((weakWords || []).map(s => String(s).toLowerCase()));
 
   if (includeMastered) {
-    return dueFirstSample(pool, stats, count, now);
+    return dueFirstSample(pool, stats, count, now, weakSet);
   }
 
   // Split so mastered words can only ever serve as a "not enough" fallback,
@@ -101,9 +111,9 @@ export function selectAnswerWords(bank, stats, count, { exam = null, includeMast
     (s.mastered ? mastered : notMastered).push(w);
   }
 
-  const picked = dueFirstSample(notMastered, stats, count, now);
+  const picked = dueFirstSample(notMastered, stats, count, now, weakSet);
   if (picked.length < count) {
-    picked.push(...weightedSampleWithoutReplacement(mastered, stats, count - picked.length));
+    picked.push(...weightedSampleWithoutReplacement(mastered, stats, count - picked.length, weakSet));
   }
   return picked;
 }

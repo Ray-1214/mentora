@@ -39,22 +39,6 @@ const DIFFICULTY_OPTIONS = [
   { id: 'hard',   label: 'Advanced'     },
 ];
 
-// ── Smart sorting (same as before) ───────────────────────────────────────────
-function sortVocab(words, stats, masteredSet, includeMastered) {
-  return [...words].sort((a, b) => {
-    const keyA = a.word.toLowerCase(), keyB = b.word.toLowerCase();
-    const mA = !includeMastered && masteredSet.has(keyA);
-    const mB = !includeMastered && masteredSet.has(keyB);
-    if (mA !== mB) return mA ? 1 : -1;
-    const tA = a.frequency_tier || 3, tB = b.frequency_tier || 3;
-    if (tA !== tB) return tA - tB;
-    const sA = stats[keyA] || {}, sB = stats[keyB] || {};
-    const ansA = sA.times_as_answer || 0, ansB = sB.times_as_answer || 0;
-    if (ansA !== ansB) return ansA - ansB;
-    return (sA.consecutive_corrects || 0) - (sB.consecutive_corrects || 0);
-  });
-}
-
 // ── Component ─────────────────────────────────────────────────────────────────
 const Main = ({ onStart, onStartDirect, onStartLoading, onError, errorMsg, onReview, onVocabManager, onCustomVocab, onSettings }) => {
   const [exam,            setExam]           = useState('TOEIC');
@@ -124,15 +108,16 @@ const Main = ({ onStart, onStartDirect, onStartLoading, onError, errorMsg, onRev
         ? activeBank.filter(w => w.exams?.includes(activeExam))
         : [...activeBank];          // custom: no exam filtering
 
+      // Weak vocab from the mistake notebook — routed into the three drills below
+      // (higher draw weight). examBank is already scope/exam-resolved.
+      const weakVocab = await getWeakVocabWords();
+
       // ── No-LLM modes (instant) ───────────────────────────────────────────
       if (mode === 'defmatch') {
         const stats       = await getWordStats();
-        const masteredSet = new Set(Object.entries(stats).filter(([,s])=>s.mastered).map(([k])=>k));
-        const sortedBank  = sortVocab(
+        const answerWords = selectAnswerWords(
           examBank.filter(w => w.meaning_zh && w.meaning_zh.length > 3),
-          stats, masteredSet, includeMastered
-        );
-        const answerWords = sortedBank.slice(0, count);
+          stats, count, { includeMastered, now: Date.now(), weakWords: weakVocab });
         const distractorPool = examBank.filter(w => w.meaning_zh && w.meaning_zh.length > 3);
         const isCustom = scope.source === 'custom' && activeExam === null;
 
@@ -175,12 +160,9 @@ const Main = ({ onStart, onStartDirect, onStartLoading, onError, errorMsg, onRev
 
       if (mode === 'reversedrill') {
         const stats       = await getWordStats();
-        const masteredSet = new Set(Object.entries(stats).filter(([,s])=>s.mastered).map(([k])=>k));
-        const sortedBank  = sortVocab(
+        const answerWords = selectAnswerWords(
           examBank.filter(w => w.meaning_zh && w.meaning_zh.length > 3),
-          stats, masteredSet, includeMastered
-        );
-        const answerWords = sortedBank.slice(0, count);
+          stats, count, { includeMastered, now: Date.now(), weakWords: weakVocab });
 
         const data = answerWords.map(aw => {
           const wrongs = selectDistractors(aw, examBank, activeExam, 3, vocabBank);
@@ -230,9 +212,8 @@ const Main = ({ onStart, onStartDirect, onStartLoading, onError, errorMsg, onRev
 
       } else if (mode === 'vocab') {
         const stats   = await getWordStats();
-        const mastered= new Set(Object.entries(stats).filter(([,s])=>s.mastered).map(([k])=>k));
-        const sorted  = sortVocab(examBank, stats, mastered, includeMastered);
-        const answers = sorted.slice(0, count);
+        const answers = selectAnswerWords(examBank, stats, count,
+          { includeMastered, now: Date.now(), weakWords: weakVocab });
         const wd      = answers.map(aw => ({
           answerWord:  aw,
           distractors: selectDistractors(aw, examBank, activeExam, 3, vocabBank),

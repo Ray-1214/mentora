@@ -8,9 +8,9 @@
 | 項目 | 內容 |
 |---|---|
 | 版本 | v1.0 |
-| 最後更新 | 2026-07-06 |
+| 最後更新 | 2026-07-07 |
 | 負責人 | Ray(架構 / 決策 / 測試);實作由 Claude Code |
-| 目前階段 | 階段 3(錯題本強化 + 弱點路由) |
+| 目前階段 | 階段 1–3 全數完成;下一步:打磨 / 階段 4(Stretch) |
 | 內部版本 | v2.1.0 |
 | 關鍵期限 | 報名截止 2026-10-05 ・ 初賽 10/13–23 ・ 決賽 11/07 |
 
@@ -29,9 +29,9 @@
 ## 2. 目標與成功指標
 **競賽目標**:InnoServe 2026 教育 AI 組，做出完成度高、差異化清楚的桌面作品。
 **成功指標(可量測)**:
-- [x] 出題不再決定性(階段 1a:同條件 200 次抽 10 字 → ≥1000 種不同字)。**已達成(1888 種)。**（註:函式層通過隔離測試;尚未接進實際 drills(走 sortVocab),drills 整合列後續任務。）
-- [x] SRS 排程運作:答對的字在 due 之前不重複出現;due 的字優先出。**已達成(test-stage1b-srs-scheduling.mjs 7 組全綠)。**（註:同上——函式層通過隔離測試;尚未接進實際 drills(走 sortVocab),drills 整合列後續任務。）
-- [ ] 弱點路由可量測:錯 N 次的字 / 文法點，在後續測驗的出現率顯著高於基準。
+- [x] 出題不再決定性(階段 1a:同條件 200 次抽 10 字 → ≥1000 種不同字)。**已達成(1888 種)。**（階段 3 起三個 drill 模式改走 `selectAnswerWords`,加權隨機已接進實際出題。）
+- [x] SRS 排程運作:答對的字在 due 之前不重複出現;due 的字優先出。**已達成(test-stage1b-srs-scheduling.mjs 7 組全綠)。**（階段 3 起 drills 走 `selectAnswerWords`,Leitner due 優先已接進實際出題。)
+- [x] 弱點路由可量測:錯 N 次的字 / 文法點，在後續測驗的出現率顯著高於基準。**已達成(階段 3:test-stage3-weakness-routing.mjs 加權路由 uplift 3.51x ≥ 2x、control 1.02x;test-stage3-part5-payload.mjs Part 5 payload 100% supplied / 0% empty)。**
 - [x] 使用者可自訂字表與範圍並持久化。**已達成(階段 2:customVocabLists + vocabScope;三個 drill 模式接自訂範圍)。**
 - [ ] Demo 能在 3–5 分鐘內展示「生成題目 → 答題 → 弱點被記錄 → 下次自動加強」的完整循環。
 
@@ -99,12 +99,15 @@
 - 動到:`src/services/vocabImport.js`(新)、`storage.js`(custom lists + scope)、`vocab.js`(`selectDistractors` 第 5 參)、`Main/index.js`(scope 接線 + 首頁顯示 / disable)、`App/index.js`(路由)、`CustomVocab/index.js`(新)。
 - 已知待辦:1a/1b 的加權隨機 + SRS 尚未接進三個 drill 模式(它們仍走 `sortVocab`);drills 整合列後續任務。
 
-### 階段 3 — 錯題本強化 + 弱點路由 — 狀態:☐ 未開始
+### 階段 3 — 錯題本強化 + 弱點路由 — ✅ 完成(2026-07-07)
 - **目標**:把「弱點分析 → 自動排進下次出題」做紮實。**這是『個人化家教』的核心賣點。**
-- **範圍內**:強化既有 `getWeakGrammarPoints` / `getWeakVocabWords`;把弱點字 / 文法點以可量測的權重排進後續測驗;錯題本可視化呈現。
-- **動到的檔(待確認)**:`Review`、`llm.js`(弱點函式)、`vocab.js`(選字權重)。
-- **相依 / 我需要看的**:`Review` 元件 + `llm.js` 的 `getWeak*` 函式。
-- **驗收標準**:測試腳本證明——某字 / 文法點被標記為弱點後，其在後續 M 次測驗的出現率顯著高於非弱點基準(給出數字)。
+- 做了什麼:
+  - **Track A(drills 確定性路由)**:`vocab.js` 的 `answerWeight` 加 `WEAK_BONUS=4` 乘數並貫穿 `weakSet`(`selectAnswerWords` 新增 `weakWords` option);三個 drill 模式(vocab / defmatch / reversedrill)由私有 `sortVocab` 改走 `selectAnswerWords`(`sortVocab` 已刪);`storage.js` 的 `getWeakVocabWords` 由僅 `'Vocabulary'` 擴為三個 drill quizType、視窗 -60 → -120。
+  - **Track B(Part 5 prompt 可測)**:抽出純函式 `buildPart5Prompt`(新檔 `part5Prompt.js`,無 SDK / env / 網路;`DIFFICULTY_MAP` / `THEMES_LABEL` 移入並回匯 `llm.js`);`generatePart5` 改為委派該 builder。
+  - **Part C(可視化)**:`Review` 上方新增「Weak vocabulary / Weak grammar points」摘要(次數由已載入的 wrongAnswers 就地統計),Part 5 錯題列補 `grammarPoint` 標籤。
+- **驗收結果**:`test-stage3-weakness-routing.mjs` PASS — 加權路由 uplift **3.51x**(門檻 ≥ 2x)、control **1.02x**(~1x);`test-stage3-part5-payload.mjs` PASS — payload **100% supplied / 0% empty**。既有 `test-stage1b`(7 組全綠)、`test-stage2`(31/0)無回歸;`npm run build` 通過(僅既有 CRA/browserslist 警告)。
+- **動到**:`vocab.js`(WEAK_BONUS + weakSet)、`storage.js`(`getWeakVocabWords` 擴大;弱點函式一向在 storage.js,非 llm.js)、`Main/index.js`(drills 改用 selectAnswerWords、刪 sortVocab、路由 weakVocab)、`part5Prompt.js`(新)、`llm.js`(委派 builder)、`Review/index.js`(弱點摘要 + 文法標籤);新增測試 `test-stage3-*.mjs`。
+- **驗收標準**:測試腳本證明——某字 / 文法點被標記為弱點後,其在後續 M 次測驗的出現率顯著高於非弱點基準(給出數字)。**達成:uplift 3.51x vs control 1.02x。**
 
 ### 階段 4(Stretch)— 聽力(TTS)— 狀態:☐ Stretch
 - **目標**:用 TTS 把現有閱讀題擴成聽力題。
@@ -122,7 +125,6 @@
 - 移除硬編碼 API key(`public/electron.js` fallback)。
 
 ## 10. 開放問題
-- 1b 用 FSRS 還是先 Leitner / SM-2?(看 storage 結構與時間成本後定)
 - 聽力 TTS 來源(線上 API vs 本機)?
 - 競賽企劃書要不要做雙語介面展示(目前全英文 UI)?
 

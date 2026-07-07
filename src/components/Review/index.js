@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { getWrongAnswers, removeWrongAnswer, clearWrongAnswers } from '../../services/storage';
+import {
+  getWrongAnswers, removeWrongAnswer, clearWrongAnswers,
+  getWeakVocabWords, getWeakGrammarPoints,
+} from '../../services/storage';
 
 // Build Anki-compatible TSV string
 // Format: #separator:tab  #html:true  Front\tBack\tTags
@@ -49,16 +52,40 @@ function buildAnkiTSV(items) {
 
 const Review = ({ onHome }) => {
   const [items,    setItems]    = useState([]);
+  const [weakVocab,  setWeakVocab]   = useState([]);
+  const [weakGrammar,setWeakGrammar] = useState([]);
   const [filter,   setFilter]   = useState('All');
   const [exporting,setExporting]= useState(false);
   const [exportMsg,setExportMsg]= useState('');
 
   useEffect(() => {
     getWrongAnswers().then(setItems);
+    getWeakVocabWords().then(setWeakVocab);
+    getWeakGrammarPoints().then(setWeakGrammar);
   }, []);
 
   const types    = ['All', ...Array.from(new Set(items.map(i => i.quizType)))];
   const filtered = filter === 'All' ? items : items.filter(i => i.quizType === filter);
+
+  // Frequency counts derived from the already-loaded wrong answers (no extra
+  // storage call): weak vocab tallies `word` across the three drill modes; weak
+  // grammar tallies `grammarPoint` across Part 5. Then rank the flagged items.
+  const vocabCounts = {};
+  const grammarCounts = {};
+  items.forEach(w => {
+    if (['Vocabulary', 'Definition Match', 'Reverse Drill'].includes(w.quizType) && w.word) {
+      vocabCounts[w.word] = (vocabCounts[w.word] || 0) + 1;
+    }
+    if (w.quizType === 'Part 5' && w.grammarPoint) {
+      grammarCounts[w.grammarPoint] = (grammarCounts[w.grammarPoint] || 0) + 1;
+    }
+  });
+  const weakVocabRanked = weakVocab
+    .map(word => ({ label: word, count: vocabCounts[word] || 0 }))
+    .sort((a, b) => b.count - a.count);
+  const weakGrammarRanked = weakGrammar
+    .map(gp => ({ label: gp, count: grammarCounts[gp] || 0 }))
+    .sort((a, b) => b.count - a.count);
 
   const handleRemove = async (globalIdx) => {
     await removeWrongAnswer(globalIdx);
@@ -111,6 +138,36 @@ const Review = ({ onHome }) => {
         </div>
       ) : (
         <>
+          {/* Weakness summary — derived from the loaded wrong answers */}
+          <div className="card" style={{ marginBottom: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div>
+                <p style={{ fontWeight: 600, marginBottom: 8, fontSize: 13 }}>Weak vocabulary</p>
+                {weakVocabRanked.length === 0 ? (
+                  <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>None yet.</p>
+                ) : (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    {weakVocabRanked.map(v => (
+                      <span key={v.label} className="tag tag-dark">{v.label} ×{v.count}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div>
+                <p style={{ fontWeight: 600, marginBottom: 8, fontSize: 13 }}>Weak grammar points</p>
+                {weakGrammarRanked.length === 0 ? (
+                  <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>None yet.</p>
+                ) : (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    {weakGrammarRanked.map(g => (
+                      <span key={g.label} className="tag">{g.label} ×{g.count}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
             <div className="nav-tabs" style={{ border: 'none', marginBottom: 0 }}>
               {types.map(t => (
@@ -152,6 +209,7 @@ const Review = ({ onHome }) => {
                     <div style={{ marginBottom: 6, display: 'flex', gap: 8, alignItems: 'center' }}>
                       <span className="tag">{item.quizType}</span>
                       {item.word && <span className="tag tag-dark">{item.word}</span>}
+                      {item.grammarPoint && <span className="tag">{item.grammarPoint}</span>}
                     </div>
                     <div className="review-item-q">{item.question}</div>
                     <div className="review-item-answers">

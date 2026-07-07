@@ -136,13 +136,16 @@ export async function getWeakGrammarPoints() {
   return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([k]) => k);
 }
 
-// Return words the user has answered incorrectly 2+ times recently
+// Return words the user has answered incorrectly 2+ times recently.
+// DefinitionMatch/ReverseDrill mistakes were recorded but never routed; Stage 3
+// routes weak vocab into all three drills, so all three feed the signal (this
+// also enriches Part 5 priorityWords, which is fine).
 export async function getWeakVocabWords() {
   const wrong  = await getWrongAnswers();
   const counts = {};
   wrong
-    .filter(w => w.quizType === 'Vocabulary' && w.word)
-    .slice(-60)
+    .filter(w => ['Vocabulary', 'Definition Match', 'Reverse Drill'].includes(w.quizType) && w.word)
+    .slice(-120)  // event stream is now ~3x larger since it spans three modes
     .forEach(w => { counts[w.word] = (counts[w.word] || 0) + 1; });
   return Object.entries(counts)
     .filter(([, n]) => n >= 2)
