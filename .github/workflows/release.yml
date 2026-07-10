@@ -45,12 +45,12 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.ref_name }}
-          name: TOEIC Drill ${{ github.ref_name }}
+          name: Mentora ${{ github.ref_name }}
           body: |
-            ## TOEIC Drill ${{ github.ref_name }} — Windows x64
+            ## Mentora ${{ github.ref_name }} — Windows x64
 
             **使用方式**
-            1. 下載 `TOEIC Drill Setup.exe` 安裝（或下載 portable .exe 直接執行）
+            1. 下載 `Mentora Setup.exe` 安裝（或下載 portable .exe 直接執行）
             2. 首次啟動填入 API 設定（Base URL、API Key、Model）
             3. 開始刷題
 

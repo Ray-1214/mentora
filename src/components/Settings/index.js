@@ -65,7 +65,7 @@ const Settings = ({ onHome, isFirstLaunch }) => {
       {isFirstLaunch && (
         <div className="card" style={{ marginBottom: 20, borderLeft: '3px solid #1A1A1A' }}>
           <p style={{ fontSize: 14, lineHeight: 1.7 }}>
-            Welcome to <strong>Test Drill</strong>. Enter your LLM API settings to get started.
+            Welcome to <strong>Mentora</strong>. Enter your LLM API settings to get started.
             <br />
             <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>
               Tunghai University users: get your API Key at{' '}
@@ -174,7 +174,7 @@ const Settings = ({ onHome, isFirstLaunch }) => {
 
         {isFirstLaunch && saved && (
           <button className="btn btn-primary btn-lg" onClick={onHome} style={{ marginTop: 4 }}>
-            Start Using Test Drill →
+            Start Using Mentora →
           </button>
         )}
       </div>

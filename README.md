@@ -1,6 +1,6 @@
-# TOEIC Drill
+# Mentora
 
-An AI-powered TOEIC preparation desktop app built with Electron + React, using the Tunghai University (東海大學) LLM API to generate authentic practice questions on demand.
+An AI-powered English exam practice desktop app (TOEIC / TOEFL / IELTS / GSAT), built with Electron + React, using an OpenAI-compatible LLM endpoint to generate practice questions on demand.
 
 ## Features
 
@@ -21,7 +21,7 @@ An AI-powered TOEIC preparation desktop app built with Electron + React, using t
 ## Prerequisites
 
 - Node.js 18+
-- An API key for the [Tunghai University LLM API](https://llmapi.service.thu.edu.tw/tutorial)
+- An API key for an OpenAI-compatible LLM endpoint
 
 ## Setup
 
@@ -72,7 +72,7 @@ Output: `dist/` — portable Windows x64 executable.
 - **React 18** + CRA — UI
 - **OpenAI SDK** — LLM API client (OpenAI-compatible endpoint)
 - **electron-store** — local data persistence
-- **LLM**: Tunghai University API (`gpt-oss-120b`)
+- **LLM**: OpenAI-compatible endpoint (default model `gpt-oss-120b`)
 
 ## Environment Variables
 

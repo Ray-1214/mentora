@@ -1,11 +1,11 @@
 {
-  "name": "toeic-drill",
-  "version": "1.1.0",
+  "name": "mentora",
+  "version": "2.3.0",
   "private": true,
   "homepage": ".",
   "main": "public/electron.js",
   "author": {
-    "name": "TOEIC Drill"
+    "name": "Mentora"
   },
   "dependencies": {
     "@testing-library/jest-dom": "^5.17.0",
@@ -30,8 +30,8 @@
     "release": "powershell -ExecutionPolicy Bypass -File scripts/release.ps1"
   },
   "build": {
-    "appId": "com.toeic.drill",
-    "productName": "TOEIC Drill",
+    "appId": "com.mentora.app",
+    "productName": "Mentora",
     "asar": true,
     "files": [
       "build/**/*",
@@ -50,7 +50,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "TOEIC Drill"
+      "shortcutName": "Mentora"
     }
   },
   "eslintConfig": {

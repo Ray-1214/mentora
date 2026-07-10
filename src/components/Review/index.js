@@ -11,13 +11,13 @@ function buildAnkiTSV(items) {
     '#separator:tab',
     '#html:true',
     '#notetype:Basic',
-    '#deck:TOEIC Drill',
+    '#deck:Mentora',
     '#tags column:3',
   ];
 
   items.forEach(item => {
     const type = (item.quizType || 'TOEIC').replace(/\s+/g, '_');
-    const tag  = `toeic-drill ${type.toLowerCase()}${item.word ? ` ${item.word}` : ''}`;
+    const tag  = `mentora ${type.toLowerCase()}${item.word ? ` ${item.word}` : ''}`;
 
     let front, back;
 
@@ -103,7 +103,7 @@ const Review = ({ onHome }) => {
     if (source.length === 0) return;
 
     const tsv      = buildAnkiTSV(source);
-    const filename = `TOEIC-Drill-${filter.replace(/\s+/g,'-')}-${new Date().toISOString().slice(0,10)}.txt`;
+    const filename = `Mentora-${filter.replace(/\s+/g,'-')}-${new Date().toISOString().slice(0,10)}.txt`;
 
     if (window.electronAPI?.saveFile) {
       setExporting(true);
@@ -246,7 +246,7 @@ const Review = ({ onHome }) => {
             <strong style={{ color: 'var(--text-primary)' }}>How to import into Anki Desktop:</strong><br />
             1. Click <b>Export to Anki</b> → save the <code>.txt</code> file<br />
             2. Open Anki → <b>File → Import</b> → select the file<br />
-            3. Make sure <b>Type: Basic</b>, <b>Deck: TOEIC Drill</b>, <b>Fields: Tab separated</b><br />
+            3. Make sure <b>Type: Basic</b>, <b>Deck: Mentora</b>, <b>Fields: Tab separated</b><br />
             4. Click Import — cards are ready to review
           </div>
         </>

@@ -1,16 +1,16 @@
-# TOEIC Drill — Windows release builder
+# Mentora — Windows release builder
 # Usage: .\scripts\release.ps1
-# Output: dist\TOEIC-Drill-vX.X.X-win-x64.zip
+# Output: dist\Mentora-vX.X.X-win-x64.zip
 
 $env:NODE_TLS_REJECT_UNAUTHORIZED = "0"
 $env:CSC_IDENTITY_AUTO_DISCOVERY  = "false"
 $env:CI = "false"
 
 $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
-$zipName = "TOEIC-Drill-v$version-win-x64.zip"
+$zipName = "Mentora-v$version-win-x64.zip"
 $zipPath = "dist\$zipName"
 
-Write-Host "=== TOEIC Drill Release Builder v$version ===" -ForegroundColor Cyan
+Write-Host "=== Mentora Release Builder v$version ===" -ForegroundColor Cyan
 
 # Step 1: React build
 Write-Host "`n[1/3] Building React app..." -ForegroundColor Yellow
@@ -23,7 +23,7 @@ npx electron-builder --win --dir 2>&1 | Out-Null
 # Note: exit code 1 is expected (winCodeSign symlink issue on Windows without Dev Mode)
 # The win-unpacked directory is always created successfully regardless
 
-$exePath = "dist\win-unpacked\TOEIC Drill.exe"
+$exePath = "dist\win-unpacked\Mentora.exe"
 if (-not (Test-Path $exePath)) {
     Write-Host "Error: $exePath not found. Packaging failed." -ForegroundColor Red
     exit 1

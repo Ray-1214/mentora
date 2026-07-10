@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import baseVocab from '../../data/vocab.json';
 import { generatePart5, generatePart6, generatePart7, generateVocabQuestions } from '../../services/llm';
-import { selectAnswerWords, selectDistractors, ALL_EXAMS, EXAM_LABELS } from '../../services/vocab';
+import { selectAnswerWords, selectDistractors, selectPriorityWords, ALL_EXAMS, EXAM_LABELS } from '../../services/vocab';
 import {
   getWordStats, getExtendedVocab,
   getMasteredCount, getWeakGrammarPoints, getWeakVocabWords,
@@ -186,13 +186,9 @@ const Main = ({ onStart, onStartDirect, onStartLoading, onError, errorMsg, onRev
         const [stats, grammarHints, weakWords] = await Promise.all([
           getWordStats(), getWeakGrammarPoints(), getWeakVocabWords(),
         ]);
-        const priorityWords = [
-          ...weakWords.slice(0, 5),
-          ...selectAnswerWords(
-            examBank.filter(w => topics.includes(w.category)),
-            stats, 10, { exam }
-          ).map(w => w.word),
-        ].filter((v, i, a) => a.indexOf(v) === i).slice(0, 12);
+        // examBank is already scope/exam-resolved; selectPriorityWords must NOT
+        // re-filter by exam (that emptied imported custom words — see vocab.js).
+        const priorityWords = selectPriorityWords(examBank, stats, { weakWords, topics, count: 10, cap: 12 });
 
         const questions = await generatePart5(count, topics, difficulty, priorityWords, grammarHints, exam);
         onStart('quiz', questions.map(q => ({
@@ -251,7 +247,7 @@ const Main = ({ onStart, onStartDirect, onStartLoading, onError, errorMsg, onRev
     <div className="app-shell">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingTop: 32 }}>
         <div className="home-logo" style={{ padding: 0, textAlign: 'left' }}>
-          <h1>Test Drill</h1>
+          <h1>Mentora</h1>
           <p>AI-powered practice for TOEIC · TOEFL · IELTS · GSAT</p>
         </div>
         <button className="btn btn-ghost btn-sm" onClick={onSettings}

@@ -1,4 +1,4 @@
-# CLAUDE.md — English Tutor (formerly "TOEIC Drill")
+# CLAUDE.md — Mentora (formerly "TOEIC Drill")
 
 > Read at the start of every Claude Code session. Keep this file current.
 > Source-of-truth docs: this file (stack / architecture / rules), ROADMAP.md
@@ -6,7 +6,7 @@
 
 ## 1. What this is
 Desktop app for AI-assisted English exam practice (TOEIC / TOEFL / IELTS / GSAT),
-evolving into a broader **personalized** English tutor. Current internal version: v2.1.0.
+evolving into a broader **personalized** English tutor. Current internal version: v2.3.0.
 Short-term goal: a polished desktop entry for the InnoServe 2026 competition (Education-AI track).
 
 ## 2. Stack — do NOT swap any of these without updating this file
@@ -50,12 +50,12 @@ implementations, NOT a rewrite.
   `src/services/vocab.js → selectAnswerWords` now uses weighted-random sampling (A-Res) and
   draws due words first via the Leitner scheduler in `src/services/srs.js`. It accepts an
   injectable `now` for testing.
-- **Part 5 custom-scope routing gap (fix at W8 polish).** Main.handleStart's quiz branch calls
-  selectAnswerWords(..., { exam }) with the original `exam`, not `activeExam`. Under a custom vocab
-  scope activeExam is null and examBank is already unfiltered, so this re-filters by w.exams and
-  drops imported words lacking an `exams` field — Part 5 priorityWords silently degrades to just
-  weakWords.slice(0,5) (no crash). Fix: pass `activeExam`, or omit `exam` since examBank is already
-  scope-resolved; add a payload test asserting priorityWords isn't emptied under custom scope.
+- **Part 5 custom-scope routing gap — fixed (W8).** The quiz branch's Part 5 priorityWords
+  assembly was extracted to `src/services/vocab.js → selectPriorityWords`, which takes NO `exam`
+  argument (the passed `bank`/`examBank` is authoritative and already scope/exam-resolved). Main
+  now calls it with the scope-resolved `examBank`, so under a custom scope imported words
+  (`exams: []`) are no longer re-filtered away and priorityWords keeps its topic selection.
+  Covered by test-w8-part5-priority-scope.mjs.
 
 ## 6. How we work (this project's workflow)
 - Architecture/scope decisions are made in a separate **planning chat**, then recorded here

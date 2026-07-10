@@ -8,7 +8,7 @@ const { OpenAI } = require('openai');
 // Load .env if present (works in dev; in packaged app falls back to hardcoded values)
 try { require('dotenv').config({ path: path.join(__dirname, '../.env') }); } catch (_) {}
 
-const store = new Store({ name: 'toeic-drill-data' });
+const store = new Store({ name: 'mentora-data' });
 
 const LLM_BASE_URL = process.env.REACT_APP_LLM_BASE_URL || 'https://api.ithu.tw/v1';
 const LLM_API_KEY  = process.env.REACT_APP_LLM_API_KEY  || 'sk-xQ7ZVt_KVcRUO3lvN9J6Rg';

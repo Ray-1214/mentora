@@ -119,6 +119,30 @@ export function selectAnswerWords(bank, stats, count, { exam = null, includeMast
 }
 
 /**
+ * Assemble the Part 5 "priority words" payload: weak words the user keeps missing,
+ * followed by topic-relevant words drawn from the (already scope/exam-resolved)
+ * bank. Deduped and capped.
+ *
+ * IMPORTANT: deliberately takes NO `exam` argument. `bank` is expected to be
+ * already scope/exam-resolved by the caller — Main builds `examBank` with the exam
+ * filter applied for the built-in scope and intentionally OFF for a custom list.
+ * Re-applying an exam filter here would drop imported custom words (which carry
+ * `exams: []`), silently emptying the topic selection under a custom scope — the
+ * exact bug this function exists to prevent.
+ *
+ * weakWords are prepended (first 5) and are NOT fed into the weighted sampler, so a
+ * weak word's presence here never double-counts against its own draw weight; this
+ * preserves the pre-extraction behavior exactly (minus the exam bug).
+ */
+export function selectPriorityWords(bank, stats, { weakWords = [], topics = null, count = 10, cap = 12 } = {}) {
+  const topicBank = topics ? bank.filter(w => topics.includes(w.category)) : [...bank];
+  const topicWords = selectAnswerWords(topicBank, stats, count).map(w => w.word);
+  return [...(weakWords || []).slice(0, 5), ...topicWords]
+    .filter((v, i, a) => a.indexOf(v) === i)
+    .slice(0, cap);
+}
+
+/**
  * Select `count` distractor words for a given answer word.
  * Prefers: same exam, same POS, tier 1-2 words (familiar but wrong)
  *
