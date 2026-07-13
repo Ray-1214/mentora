@@ -56,10 +56,10 @@
 **明確範圍外**(避免 scope creep，移至 Backlog §9):手機版、上架、後端 API、看廣告換 token、口說 / 發音評測、換更便宜 LLM。
 
 ## 6. 假設・相依・限制
-- LLM 端點目前是東海自架(api.ithu.tw)，僅供開發;上架需換商用供應商(Backlog)。
-- API key 來自 Settings / .env;**硬編碼 fallback 待移除**(上架前必辦)。
+- LLM 端點目前是自架的開發用端點,僅供開發;上架需換商用供應商(Backlog)。
+- API key 來自 Settings / .env;**硬編碼 fallback 已移除**(fallback 現為 `''`)。
 - 商業邏輯一律留 `src/services/`，平台相關走 layer-2 抽象(見 CLAUDE.md)，以利日後 Capacitor 手機移植不重寫。
-- 大學網路 SSL 攔截:開發用 `NODE_TLS_REJECT_UNAUTHORIZED=0`(上架前要正解)。
+- 開發環境 SSL 攔截:開發用 `NODE_TLS_REJECT_UNAUTHORIZED=0`(上架前要正解)。
 
 ## 7. 里程碑與時程(目標，依實際進度調整)
 > 單人開發步調為估計值，各階段保留緩衝;階段 1–3 為必做，4 與額外項為彈性。
@@ -122,7 +122,6 @@
 - 後端 API(LLM 代理、帳號、token 記帳、廣告 SSV 驗證)。
 - 看廣告換 token(AdMob 獎勵式 + 後端 SSV)。
 - 換較便宜 LLM(如 DeepSeek)+ 單位經濟試算。
-- 移除硬編碼 API key(`public/electron.js` fallback)。
 
 ## 10. 開放問題
 - 聽力 TTS 來源(線上 API vs 本機)?

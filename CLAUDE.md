@@ -34,9 +34,9 @@ that destroys layer-1 reuse. Adding mobile = adding a shell + filling in layer-2
 implementations, NOT a rewrite.
 
 ## 4. Hard rules
-- **NEVER hardcode API keys.** Remove the existing hardcoded fallback key in
-  `public/electron.js`. The key comes from Settings / `.env` only. Once the backend exists,
-  the client holds no provider key at all.
+- **NEVER hardcode API keys.** The hardcoded fallback key in `public/electron.js` has been
+  removed (fallback is now `''`); the key comes from Settings / `.env` only. Once the backend
+  exists, the client holds no provider key at all.
 - Keep ALL business logic (word selection, SRS, stats, LLM prompts, JSON parsing) in
   `src/services/` — UI-framework-agnostic, so it survives the future mobile port untouched.
 - No direct `electron`/Node calls inside React components — go through a layer-2 service.

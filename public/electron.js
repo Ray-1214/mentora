@@ -10,9 +10,9 @@ try { require('dotenv').config({ path: path.join(__dirname, '../.env') }); } cat
 
 const store = new Store({ name: 'mentora-data' });
 
-const LLM_BASE_URL = process.env.REACT_APP_LLM_BASE_URL || 'https://api.ithu.tw/v1';
-const LLM_API_KEY  = process.env.REACT_APP_LLM_API_KEY  || 'sk-xQ7ZVt_KVcRUO3lvN9J6Rg';
-const LLM_MODEL    = process.env.REACT_APP_LLM_MODEL    || 'gpt-oss-120b';
+const LLM_BASE_URL = process.env.REACT_APP_LLM_BASE_URL || 'https://api.openai.com/v1';
+const LLM_API_KEY  = process.env.REACT_APP_LLM_API_KEY  || '';
+const LLM_MODEL    = process.env.REACT_APP_LLM_MODEL    || 'gpt-4o-mini';
 
 const client = new OpenAI({ baseURL: LLM_BASE_URL, apiKey: LLM_API_KEY });
 

@@ -39,5 +39,5 @@ Write-Host "  Created: $zipPath ($sizeMB MB)" -ForegroundColor Green
 
 Write-Host "`n=== Release ready ===" -ForegroundColor Cyan
 Write-Host "File : $zipPath"
-Write-Host "Link : https://github.com/Ray-1214/toeic-quiz-app/releases/new"
+Write-Host "Link : https://github.com/<owner>/mentora/releases/new"
 exit 0

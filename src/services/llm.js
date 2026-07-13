@@ -3,9 +3,9 @@ import { EXAM_CONTEXT } from './vocab';
 import { buildPart5Prompt, DIFFICULTY_MAP, THEMES_LABEL } from './part5Prompt.js';
 
 // Static fallbacks (used in browser-only mode; Electron reads live settings from store per call)
-const LLM_API_BASE_DEFAULT = process.env.REACT_APP_LLM_BASE_URL || 'https://api.ithu.tw/v1';
+const LLM_API_BASE_DEFAULT = process.env.REACT_APP_LLM_BASE_URL || 'https://api.openai.com/v1';
 const LLM_API_KEY_DEFAULT  = process.env.REACT_APP_LLM_API_KEY  || '';
-const LLM_MODEL_DEFAULT    = process.env.REACT_APP_LLM_MODEL    || 'gpt-oss-120b';
+const LLM_MODEL_DEFAULT    = process.env.REACT_APP_LLM_MODEL    || 'gpt-4o-mini';
 
 function systemPrompt(exam) {
   const ctx = EXAM_CONTEXT[exam] || EXAM_CONTEXT['TOEIC'];

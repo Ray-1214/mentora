@@ -26,10 +26,10 @@ An AI-powered English exam practice desktop app (TOEIC / TOEFL / IELTS / GSAT), 
 ## Setup
 
 ```bash
-git clone https://github.com/Ray-1214/toeic-quiz-app.git
-cd toeic-quiz-app
+git clone https://github.com/<owner>/mentora.git
+cd mentora
 
-# Install dependencies (university network — SSL workaround required)
+# Install dependencies (self-signed cert — SSL workaround may be required)
 $env:NODE_TLS_REJECT_UNAUTHORIZED="0"   # PowerShell
 npm install
 ```

@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { getSettings, saveSettings, DEFAULT_MASTERY_THRESHOLD } from '../../services/storage';
 
 const DEFAULT_SETTINGS = {
-  apiBase:          'https://api.ithu.tw/v1',
+  apiBase:          '',
   apiKey:           '',
-  model:            'gpt-oss-120b',
+  model:            'gpt-4o-mini',
   masteryThreshold: DEFAULT_MASTERY_THRESHOLD,
 };
 
@@ -68,8 +68,7 @@ const Settings = ({ onHome, isFirstLaunch }) => {
             Welcome to <strong>Mentora</strong>. Enter your LLM API settings to get started.
             <br />
             <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>
-              Tunghai University users: get your API Key at{' '}
-              <a href="https://llmapi.service.thu.edu.tw/tutorial" target="_blank" rel="noreferrer" style={{ color: 'inherit' }}>llmapi.service.thu.edu.tw</a>
+              Use any OpenAI-compatible endpoint — enter its base URL, your API key, and a model name below.
             </span>
           </p>
         </div>
@@ -86,7 +85,7 @@ const Settings = ({ onHome, isFirstLaunch }) => {
             type="text"
             value={form.apiBase}
             onChange={e => update('apiBase', e.target.value)}
-            placeholder="https://api.ithu.tw/v1"
+            placeholder="https://api.openai.com/v1"
             style={inputStyle}
           />
         </div>
@@ -100,7 +99,7 @@ const Settings = ({ onHome, isFirstLaunch }) => {
             type="password"
             value={form.apiKey}
             onChange={e => update('apiKey', e.target.value)}
-            placeholder="sk-xxxxxxxxxxxxxxxx"
+            placeholder="your-api-key"
             style={inputStyle}
             autoComplete="off"
           />
@@ -115,11 +114,11 @@ const Settings = ({ onHome, isFirstLaunch }) => {
             type="text"
             value={form.model}
             onChange={e => update('model', e.target.value)}
-            placeholder="gpt-oss-120b"
+            placeholder="gpt-4o-mini"
             style={inputStyle}
           />
           <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
-            THU available: gpt-oss-120b · Llama-4-Scout-17B-16E-Instruct-FP8 · Nemotron-3-Nano-Omni-30B
+            The model ID your endpoint supports (e.g. gpt-4o-mini).
           </p>
         </div>
 

@@ -30,8 +30,8 @@ jobs:
         env:
           CI: false
           REACT_APP_LLM_BASE_URL: ${{ secrets.LLM_BASE_URL }}
-          REACT_APP_LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
           REACT_APP_LLM_MODEL: ${{ secrets.LLM_MODEL }}
+          # No REACT_APP_LLM_API_KEY: the client bakes no provider key; users enter it in Settings at runtime (CLAUDE.md §4).
 
       - name: Package Electron app
         run: npx electron-builder --win --publish never
