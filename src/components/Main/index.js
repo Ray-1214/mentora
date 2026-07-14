@@ -43,7 +43,7 @@ const DIFFICULTY_OPTIONS = [
 const Main = ({ onStart, onStartDirect, onStartLoading, onError, errorMsg, onReview, onVocabManager, onCustomVocab, onSettings }) => {
   const [exam,            setExam]           = useState('TOEIC');
   const [mode,            setMode]           = useState('quiz');
-  const [topics,          setTopics]         = useState(['business']);
+  const [topics,          setTopics]         = useState(TOPICS.map(t => t.id));
   const [count,           setCount]          = useState(10);
   const [difficulty,      setDifficulty]     = useState('medium');
   const [includeMastered, setIncludeMastered]= useState(false);
@@ -51,6 +51,7 @@ const Main = ({ onStart, onStartDirect, onStartLoading, onError, errorMsg, onRev
   const [masteredCount,   setMasteredCount]  = useState(0);
   const [scope,           setScope]          = useState({ source: 'builtin', customListId: null });
   const [customLists,     setCustomLists]    = useState([]);
+  const [optionsOpen,     setOptionsOpen]    = useState(false);
 
   useEffect(() => {
     getExtendedVocab().then(ext => {
@@ -243,6 +244,21 @@ const Main = ({ onStart, onStartDirect, onStartLoading, onError, errorMsg, onRev
   const examWordCount  = vocabBank.filter(w => w.exams?.includes(exam)).length;
   const isNoLLM        = ['defmatch','reversedrill'].includes(mode);
 
+  // Collapsed "Options" summary — only the settings relevant to the current mode
+  // (same show/hide conditions as the expanded panel), joined by " · ".
+  const difficultyLabel = DIFFICULTY_OPTIONS.find(d => d.id === difficulty)?.label || difficulty;
+  const topicsSummary =
+    topics.length === TOPICS.length ? 'All topics'
+    : topics.length <= 3            ? TOPICS.filter(t => topics.includes(t.id)).map(t => t.label).join(', ')
+    :                                 `${topics.length} topics`;
+  const scopeSummary = activeCustomList ? `Custom: ${activeCustomList.name}` : 'Built-in bank';
+  const optionsSummary = [
+    !isNoLLM   && difficultyLabel,
+    showCount  && `${count} questions`,
+    showTopics && topicsSummary,
+    scopeSummary,
+  ].filter(Boolean).join(' · ');
+
   return (
     <div className="app-shell">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingTop: 32 }}>
@@ -277,27 +293,6 @@ const Main = ({ onStart, onStartDirect, onStartLoading, onError, errorMsg, onRev
         </div>
       </div>
 
-      {/* Vocab range — a custom list overrides the exam filter for the drill modes */}
-      <div className="config-section">
-        <span className="config-label">Vocab Range</span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <span className="chip selected" style={{ cursor: 'default' }}>
-            {activeCustomList ? `Custom: ${activeCustomList.name}` : 'Built-in bank'}
-          </span>
-          {activeCustomList && (
-            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-              {activeCustomList.words.length.toLocaleString()} words · exam filter off
-            </span>
-          )}
-          <button className="btn btn-ghost btn-sm" onClick={onCustomVocab}>Manage lists</button>
-        </div>
-        {meaningModesDisabled && (
-          <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6 }}>
-            This list has no Chinese translations; only Word Drill is available.
-          </p>
-        )}
-      </div>
-
       {/* Mode grid */}
       <div className="config-section">
         <span className="config-label">Mode</span>
@@ -321,57 +316,96 @@ const Main = ({ onStart, onStartDirect, onStartLoading, onError, errorMsg, onRev
         </div>
       </div>
 
-      {/* Topics */}
-      {showTopics && (
-        <div className="config-section">
-          <span className="config-label">Topics (multi-select)</span>
-          <div className="chip-group">
-            {TOPICS.map(t => (
-              <button key={t.id} className={`chip${topics.includes(t.id) ? ' selected' : ''}`} onClick={() => toggleTopic(t.id)}>
-                {t.label}
-              </button>
-            ))}
-          </div>
+      {/* ── Options disclosure: one summary line, expandable to the full config ── */}
+      {!optionsOpen ? (
+        <div className="options-summary">
+          <span className="options-summary-text">{optionsSummary}</span>
+          <button className="btn btn-ghost btn-sm" onClick={() => setOptionsOpen(true)}>
+            Customize <span className="options-chevron">▸</span>
+          </button>
         </div>
-      )}
-
-      {/* Difficulty */}
-      {!isNoLLM && (
-        <div className="config-section">
-          <span className="config-label">Difficulty</span>
-          <div className="chip-group">
-            {DIFFICULTY_OPTIONS.map(d => (
-              <button key={d.id} className={`chip${difficulty === d.id ? ' selected' : ''}`} onClick={() => setDifficulty(d.id)}>
-                {d.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Count */}
-      {showCount && (
-        <div className="config-section">
-          <span className="config-label">Questions</span>
-          <div className="chip-group">
-            {COUNT_OPTIONS.map(n => (
-              <button key={n} className={`chip${count === n ? ' selected' : ''}`} onClick={() => setCount(n)}>{n}</button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Mastered toggle */}
-      {['vocab','defmatch','reversedrill'].includes(mode) && masteredCount > 0 && (
-        <div className="config-section">
-          <span className="config-label">Mastered Words</span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <button className={`chip${includeMastered ? ' selected' : ''}`} onClick={() => setIncludeMastered(v => !v)}>
-              {includeMastered ? '✓ Include mastered' : 'Skip mastered'}
+      ) : (
+        <div className="options-panel">
+          <div className="options-summary">
+            <span className="config-label" style={{ margin: 0 }}>Options</span>
+            <button className="btn btn-ghost btn-sm" onClick={() => setOptionsOpen(false)}>
+              Done <span className="options-chevron">▾</span>
             </button>
-            <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-              {masteredCount} mastered
-            </span>
+          </div>
+
+          {/* Topics */}
+          {showTopics && (
+            <div className="config-section">
+              <span className="config-label">Topics (multi-select)</span>
+              <div className="chip-group">
+                {TOPICS.map(t => (
+                  <button key={t.id} className={`chip${topics.includes(t.id) ? ' selected' : ''}`} onClick={() => toggleTopic(t.id)}>
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Difficulty */}
+          {!isNoLLM && (
+            <div className="config-section">
+              <span className="config-label">Difficulty</span>
+              <div className="chip-group">
+                {DIFFICULTY_OPTIONS.map(d => (
+                  <button key={d.id} className={`chip${difficulty === d.id ? ' selected' : ''}`} onClick={() => setDifficulty(d.id)}>
+                    {d.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Count */}
+          {showCount && (
+            <div className="config-section">
+              <span className="config-label">Questions</span>
+              <div className="chip-group">
+                {COUNT_OPTIONS.map(n => (
+                  <button key={n} className={`chip${count === n ? ' selected' : ''}`} onClick={() => setCount(n)}>{n}</button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Mastered toggle */}
+          {['vocab','defmatch','reversedrill'].includes(mode) && masteredCount > 0 && (
+            <div className="config-section">
+              <span className="config-label">Mastered Words</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <button className={`chip${includeMastered ? ' selected' : ''}`} onClick={() => setIncludeMastered(v => !v)}>
+                  {includeMastered ? '✓ Include mastered' : 'Skip mastered'}
+                </button>
+                <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                  {masteredCount} mastered
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Vocab range — status only; the single entry to CustomVocab is the bottom "My Word Lists" button */}
+          <div className="config-section">
+            <span className="config-label">Vocab Range</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              <span className="chip selected" style={{ cursor: 'default' }}>
+                {activeCustomList ? `Custom: ${activeCustomList.name}` : 'Built-in bank'}
+              </span>
+              {activeCustomList && (
+                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                  {activeCustomList.words.length.toLocaleString()} words · exam filter off
+                </span>
+              )}
+            </div>
+            {meaningModesDisabled && (
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6 }}>
+                This list has no Chinese translations; only Word Drill is available.
+              </p>
+            )}
           </div>
         </div>
       )}

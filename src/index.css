@@ -255,6 +255,23 @@ body {
   font-weight: 600;
 }
 
+/* ── Options disclosure (launcher summary) ── */
+.options-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--border);
+  margin-bottom: 18px;
+}
+.options-summary-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+.options-chevron { font-size: 11px; }
+
 /* ── Quiz ── */
 .quiz-meta {
   display: flex;
