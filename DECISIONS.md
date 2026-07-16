@@ -9,7 +9,7 @@
 | 2 | 2026-06-23 | 不重寫成 Flutter / React Native | 會摧毀 layer-1(UI + 邏輯)重用 | 生效 |
 | 3 | 2026-06-23 | 競賽先做桌面、不上架 | 短期目標是 InnoServe，本機能 demo 即可 | 生效 |
 | 4 | 2026-06-23 | 出題引擎:決定性排序 → 加權隨機(1a)→ SRS(1b) | 解決「由上往下 + 單調」，且保留教學優先序 | 1b 完成 |
-| 5 | 2026-06-23 | 競賽組別:教育 AI 組(暫定) | 命題吻合「以 AI 解決學生學習」 | 暫定 |
+| 5 | 2026-06-23 | 競賽組別:教育 AI 組(暫定) | 命題吻合「以 AI 解決學生學習」 | 已取代(見 #26) |
 | 6 | 2026-06-23 | 實作工具:Claude Code(VS Code 擴充、Local 來源、Claude Pro 帳號) | 本機開發要能跑 Electron / build;Local 比雲端沙箱順;Pro 可用 Sonnet | 生效 |
 | 7 | 2026-06-23 | 專案名 `mentora`(中文展示加「-英語AI家教」) | 撞名在競賽階段無妨;上架前再查商標 | 暫定 |
 | 8 | 2026-06-23 | 協作:一個任務一個新對話，靠 `.md`(CLAUDE / ROADMAP / DECISIONS)做 handoff | 避免對話過長被壓縮;讓新對話可無縫接手 | 生效 |
@@ -30,3 +30,4 @@
 | 23 | 2026-07-08 | 刪除 QuizApp/CRA 範本殘骸死碼共 15 檔:semantic-ui-react 叢集 13 檔(7 源 Header/Layout/Countdown/Offline/ShareButton/Result{QNA,Stats} + 6 story)+ 完整 PWA service-worker scaffold 2 檔(`src/serviceWorkerRegistration.js` 唯一 `sweetalert2` import;`src/service-worker.js` workbox worker;`register()` 從未被 `src/index.js` 呼叫 → registration 與 worker 皆死);連帶消滅 `semantic-ui-react` 與 `sweetalert2` 兩個幽靈依賴,src 內兩者 import 全數清除 | 全在 CRA build graph 之外(build 過但兩套件未安裝、不在 lock)、無活檔引用、無 test 引用;依既有原則「不宣告幽靈依賴壓 CI 警告,改刪死碼」;刪 `service-worker.js` 後 workbox InjectManifest 跳過(swSrc 不存在)、build 的 precache 警告消失;guard `test-w8-deadcode-clean.mjs` 綠;順帶修好本就壞掉的 npm run storybook | 生效 |
 | 24 | 2026-07-08 | 匿名化(盲審):移除機構(校名 / 網域)與個人識別碼於 UI / 程式碼 / docs;Settings 表單 apiBase 預設改空字串 + 中性 placeholder、model 預設與提示改中性;程式碼 base-URL fallback 與 `.env.example` 範例改中性 OpenAI 相容值(api.openai.com/v1、gpt-4o-mini);`public/electron.js` 硬編碼 fallback key 移除(改 `''`);CI build 移除 API key 注入 | 競賽盲審匿名要求 + CLAUDE.md §4(client 不持有 provider key);該 key 曾入公開 git 歷史 → 視為已洩漏,須於供應商端 rotate | 生效 |
 | 25 | 2026-07-14 | UI 方向:啟動器(首頁)與工作區(答題頁)分離。北極星 = IDE 式常駐工作區(僅答題頁):center=作答、right dock=AI 助手(預留)、bottom dock=單字/文法解釋(預留)、left rail=區域導航(練習/錯題本/單字表/單字庫)。future-feature dock 預設收合。首頁 = 啟動器(Option A:主決策 Mode + 情境 Exam 常駐,其餘設定收合為可見摘要 + 按需展開 + 合理預設)。競賽投交前只實作首頁 Option A;docks 隨其功能(AI chat / 解釋)落地時再建,不預先建空殼。理由:①一次看太多=選擇過載,與冷靜定位衝突→密度改以「預設收合+視覺分層」承載;②IDE 學習曲線需高頻使用攤平、備考學生低頻→預設收合保護新手、展開保留 power-user;③空 dock 對 3–5 分鐘 demo 零加分且有破壞 core loop 風險→demo 經濟學上 defer;④「預留 Ask-AI 位置」於架構層(=工作區 right dock)即滿足。 | 生效 |
+| 26 | 2026-07-16 | 競賽改為 NIICC 2026(全國大專校院智慧創新暨跨域整合創作競賽,國立中央大學主辦),組別 = 數位運算科技與創新應用組;取代 #5 的 InnoServe 教育 AI 組 | 該組涵蓋智慧學習 / 人工智慧 / 大型語言模型 / 生成式 AI / AI 代理,與本案完全吻合;初賽為文件審查(企劃書 + 系統需求書 + 3 分鐘影片),8/7 截止,決賽 11/1 於中央大學實地攤位展示 | 生效 |

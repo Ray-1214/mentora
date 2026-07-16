@@ -7,7 +7,7 @@
 ## 1. What this is
 Desktop app for AI-assisted English exam practice (TOEIC / TOEFL / IELTS / GSAT),
 evolving into a broader **personalized** English tutor. Current internal version: v2.3.0.
-Short-term goal: a polished desktop entry for the InnoServe 2026 competition (Education-AI track).
+Short-term goal: a polished desktop entry for the NIICC 2026 competition (全國大專校院智慧創新暨跨域整合創作競賽, hosted by National Central University), track 數位運算科技與創新應用組. Preliminary document review deadline: 2026-08-07.
 
 ## 2. Stack — do NOT swap any of these without updating this file
 - Electron 31 — desktop shell
