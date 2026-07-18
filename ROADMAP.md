@@ -148,10 +148,20 @@
 - **驗收標準**:至少一種題型能播放音檔作答;音訊走抽象介面;build 通過。
 
 ## 9. Backlog(上架後，非短期)
+- **【7/25 資料任務・近期,非 Backlog】**(訓練營後、demo 錄製前;此任務即授權修正的落地):
+  ① LLM 重生 CEEC 5,686 筆 `meaning_zh`(清除牛津文字,覆蓋率 36%→100%);
+  ② 修 `parse-ceec.js` 複合條目(`agree(ment)`/`actor/actress`/`bicycle/bike`;現有 `"accomplish v"` 類 word 汙染);
+  ③ 從 `vocab.json` 刪除 IELTS/TOEFL/TOEIC 字集(牛津/金山/出處不明資料)—— 授權核心修正;
+  ④ 移除首頁考試選擇器,六模式改吃單一 CEEC 字庫;
+  ⑤ 清理 `source` 標記(剩餘統一標 `ceec`);
+  ⑥ 首頁進入點改為模式選擇(不再選考試)。
+  **驗收**:`vocab.json` 僅剩 CEEC 字;`meaning_zh` 覆蓋率 100%;`word` 欄無詞性殘留;六模式正常;Ray 本機重跑 stage 1a/1b/3 測試無回歸(字數變少但機制與字數無關,uplift 應仍成立)。
+  (見 DECISIONS #30)
 - 手機版(Capacitor 包同一份 `src/`)。
 - 後端 API(LLM 代理、帳號、token 記帳、廣告 SSV 驗證);帳號同時持久化 per-user profile JSON(弱點/精熟/SRS 狀態 + 習慣/興趣/對話歷史),供 AI 家教跨裝置存取。上市即需此後端 + 主機,屬獨立階段、非 UI 任務。
 - 看廣告換 token(AdMob 獎勵式 + 後端 SSV)。
 - 換較便宜 LLM(如 DeepSeek)+ 單位經濟試算。
+- 各考試(TOEIC/托福/雅思等)題型/順序/節奏模擬:以 CEEC 單字為內容,套各考試公開的應試格式跑整套模擬考。需先有跨題型流程引擎 + 聽力/口說/寫作題型。競賽版不含,企劃書未來發展描述。(見 DECISIONS #31)
 
 — AI 家教能力擴充 —
 - 寫作練習與 AI 批改(作文題 → LLM 評分 / 回饋)。
