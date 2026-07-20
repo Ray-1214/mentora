@@ -1,17 +1,27 @@
-// Parse CEEC 高中英文參考詞彙表 and merge into src/data/vocab.json
-// Usage: node scripts/parse-ceec.js
-// Output: updates src/data/vocab.json in-place
+// Parse CEEC 高中英文參考詞彙表 into the canonical CEEC word set.
+// Usage (report only, does NOT write any file):  node scripts/parse-ceec.js
+// Exports pure fn parseCeecEntries(mdText) for the vocab rebuild (A2) and tests.
+//
+// Line grammar (one logical entry): <word-spec> <pos-spec> <level 1-6>
+//   word-spec  e.g. "ability", "agree(ment)", "actor/actress", "advertise(ment)/ad"
+//   pos-spec   e.g. "n.", "v./(n.)", "adj./n."   (each slash-group = <=6 letters + a dot)
+//   level      single digit 1-6
+// Compound handling:
+//   - slash variants -> separate words          (actor/actress -> actor, actress)
+//   - paren suffix    -> base + base+suffix       (agree(ment)   -> agree, agreement)
+//   - line-wrapped slash chains are healed        (congressman/ congresswoman -> both)
+//   - lines gluing TWO entries (only the last carries a level) are QUARANTINED, not parsed,
+//     because the first entry's level is unrecoverable from the line — fix it in the .md.
 
 const fs   = require('fs');
 const path = require('path');
 
-const CEEC_FILE  = path.join(__dirname, '../高中英文參考詞彙表_111學年度起適用.md');
-const VOCAB_FILE = path.join(__dirname, '../src/data/vocab.json');
+const CEEC_FILE = path.join(__dirname, '../高中英文參考詞彙表_111學年度起適用.md');
 
 // CEEC level → app difficulty (1=easy,2=medium,3=hard) — all 6 levels included
 const LEVEL_TO_DIFF = { '1': 1, '2': 1, '3': 1, '4': 2, '5': 3, '6': 3 };
 
-// Simple keyword → TOEIC category heuristic
+// Simple keyword → category heuristic (unchanged; consumed by the A2 rebuild)
 function guessCategory(word, pos) {
   const w = word.toLowerCase();
   const businessVerbs = ['manage','organize','arrange','schedule','approve','submit','confirm','notify','assess','assign','authorize','coordinate','facilitate','implement','negotiate','review','revise','allocate','evaluate','maintain','monitor','obtain','process','propose','report','request','verify','clarify','compile','conduct','consult','delegate','determine','document','establish','finalize','generate','identify','initiate','justify','maximize','minimize','outsource','perform','provide','respond','specify','summarize','transfer'];
@@ -22,7 +32,6 @@ function guessCategory(word, pos) {
   const marketingWords = ['advertise','brand','campaign','client','compete','consumer','demand','discount','distribute','exclusive','launch','market','merchandise','negotiate','niche','offer','promote','purchase','quota','retail','sales','strategy','target','wholesale'];
   const facilityWords = ['accessible','adjacent','amenity','capacity','commercial','facility','inspect','lease','maintenance','occupancy','premises','property','renovation','residential','tenant','utility','vacancy','warehouse'];
   const diningWords = ['appetizer','banquet','beverage','catering','cuisine','dine','gratuity','menu','portion','recipe','refreshment','reservation','venue'];
-
   if (businessVerbs.includes(w)) return 'business';
   if (financeWords.includes(w)) return 'finance';
   if (hrWords.includes(w)) return 'hr';
@@ -31,96 +40,128 @@ function guessCategory(word, pos) {
   if (marketingWords.includes(w)) return 'marketing';
   if (facilityWords.includes(w)) return 'facilities';
   if (diningWords.includes(w)) return 'dining';
-  return 'academic';  // default for CEEC-sourced words
+  return 'academic';
 }
 
-// Parse a word from a CEEC line (handle "achieve(ment)", "actor/actress", etc.)
-function parseWord(raw) {
-  // Take first slash-separated variant
-  let w = raw.split('/')[0].trim();
-  // Remove parenthetical suffixes like (ment), (tion)
-  w = w.replace(/\(.*?\)/, '').trim();
-  // Remove trailing dots or dashes
-  w = w.replace(/[.\-]+$/, '').trim();
-  return w.toLowerCase();
+// POS-token: every slash-group is (optional paren) 1-6 letters + a REQUIRED dot (optional paren).
+// The required trailing dot separates a POS tag ("art.") from a homographic word ("art").
+function isPosToken(tok) {
+  const groups = tok.split('/');
+  return groups.length > 0 && groups.every(g => /^\(?[a-z]{1,6}\.\)?$/.test(g));
 }
 
-// Parse POS: "v./(n.)" → "v.", "adj./n." → "adj."
-function parsePOS(raw) {
-  return raw.split('/')[0].trim();
+// Expand a healed word-spec into standard single words.
+//  "agree(ment)"        -> ["agree","agreement"]
+//  "actor/actress"      -> ["actor","actress"]
+//  "advertise(ment)/ad" -> ["advertise","advertisement","ad"]
+// Paren content is treated as a SUFFIX appended to the base; a paren holding a full
+// replacement word (e.g. "argue(argument)") yields a junk join surfaced in the manifest.
+function expandWordSpec(spec) {
+  const out = [];
+  for (const variant of spec.split('/').map(s => s.trim()).filter(Boolean)) {
+    const m = variant.match(/^([a-z.''\-]+)\(([a-z.''\-]+)\)$/i);
+    if (m) { out.push(m[1]); out.push(m[1] + m[2]); }
+    else   { out.push(variant.replace(/[()]/g, '')); }
+  }
+  return out;
+}
+
+// Map pos-spec parts to expanded words: positional when counts match, else all share full spec.
+function mapPos(words, posSpec) {
+  const parts = posSpec.split('/').map(p => p.replace(/[()]/g, '').trim()).filter(Boolean);
+  if (parts.length === words.length) return words.map((w, i) => ({ word: w, pos: parts[i] }));
+  const full = parts.join('/');
+  return words.map(w => ({ word: w, pos: full }));
+}
+
+function normalizeWord(w) { return w.toLowerCase().replace(/[.\-]+$/, '').trim(); }
+
+function parseLine(rawLine) {
+  const line = rawLine.trim();
+  if (!line || line.startsWith('#')) return { type: 'skip' };
+
+  const toks = line.split(/\s+/);
+  const levelTok = toks[toks.length - 1];
+  if (!/^[1-6]$/.test(levelTok)) return { type: 'unparseable', line };
+  const level = parseInt(levelTok, 10);
+
+  const body = toks.slice(0, -1);
+  if (body.length === 0) return { type: 'unparseable', line };
+
+  const entries = [];
+  let cur = [];
+  for (const t of body) {
+    if (isPosToken(t)) {
+      if (cur.length === 0) return { type: 'unparseable', line };
+      entries.push({ wordToks: cur, posSpec: t });
+      cur = [];
+    } else {
+      cur.push(t);
+    }
+  }
+  if (cur.length > 0) return { type: 'unparseable', line };
+  if (entries.length !== 1) return { type: 'glued', line, entryCount: entries.length };
+
+  const healed = entries[0].wordToks.join('').replace(/\/+/g, '/').replace(/^\/|\/$/g, '');
+  const mapped = mapPos(expandWordSpec(healed), entries[0].posSpec);
+  return { type: 'ok', level, healed, mapped };
+}
+
+// Pure: parse full .md text into canonical CEEC entries + diagnostics.
+function parseCeecEntries(mdText) {
+  const entries = [];
+  const seen = new Map();
+  const quarantined = [];
+  const unparseable = [];
+  const dups = [];
+  const compoundManifest = [];
+
+  for (const raw of mdText.split(/\r?\n/)) {
+    const r = parseLine(raw);
+    if (r.type === 'skip') continue;
+    if (r.type === 'unparseable') { unparseable.push(r.line); continue; }
+    if (r.type === 'glued') { quarantined.push({ line: r.line, entryCount: r.entryCount }); continue; }
+
+    const produced = [];
+    for (const { word, pos } of r.mapped) {
+      const w = normalizeWord(word);
+      if (w.length < 3 || !/^[a-z]/.test(w)) continue;
+      produced.push(w);
+      if (seen.has(w)) { dups.push(w); continue; }
+      const entry = { word: w, pos, ceec_level: r.level };
+      seen.set(w, entry);
+      entries.push(entry);
+    }
+    if (/[()\/]/.test(r.healed)) compoundManifest.push({ src: r.healed, words: produced });
+  }
+
+  return { entries, quarantined, unparseable, dups, compoundManifest };
 }
 
 function main() {
-  const lines  = fs.readFileSync(CEEC_FILE, 'utf8').split('\n');
-  const base   = JSON.parse(fs.readFileSync(VOCAB_FILE, 'utf8'));
+  const md = fs.readFileSync(CEEC_FILE, 'utf8');
+  const { entries, quarantined, unparseable, dups, compoundManifest } = parseCeecEntries(md);
 
-  const existing = new Set(base.map(w => w.word.toLowerCase()));
-  let nextId = Math.max(...base.map(w => typeof w.id === 'number' ? w.id : 0)) + 1;
+  const byLevel = {};
+  entries.forEach(e => { byLevel[e.ceec_level] = (byLevel[e.ceec_level] || 0) + 1; });
 
-  // Line pattern: word pos level (may have extra spaces)
-  const pat = /^(.+?)\s+((?:[a-z]+\.?\/)*[a-z]+\.?)\s+(\d)\s*$/;
-  const added = [];
-  const skipped = { tooBasic: 0, duplicate: 0, unparseable: 0 };
+  console.log('=== CEEC parse (report only — no file written) ===');
+  console.log('Total CEEC words:', entries.length);
+  console.log('By ceec_level  :', byLevel);
+  console.log('Dups (within .md, first kept):', dups.length, dups.length ? dups.slice(0, 20) : '');
+  console.log('Unparseable lines:', unparseable.length);
+  unparseable.slice(0, 20).forEach(l => console.log('   ?', JSON.stringify(l)));
 
-  for (const raw of lines) {
-    const line = raw.trim();
-    if (!line || line.startsWith('#')) continue;
+  console.log('\n--- QUARANTINED glued lines (fix in .md: split entries + restore missing level) ---');
+  console.log('count:', quarantined.length);
+  quarantined.forEach(q => console.log('   !', JSON.stringify(q.line)));
 
-    const m = pat.exec(line);
-    if (!m) { skipped.unparseable++; continue; }
-
-    const level = m[3];
-    // Include all levels 1-6
-
-    const word = parseWord(m[1]);
-    const pos  = parsePOS(m[2]);
-
-    // Skip very short or non-alphabetic words
-    if (word.length < 3 || !/^[a-z]/.test(word)) { skipped.unparseable++; continue; }
-
-    // Skip duplicates
-    if (existing.has(word)) { skipped.duplicate++; continue; }
-
-    // TOEIC priority by CEEC level:
-    // Level 5-6 → priority 2 (advanced, often tested in TOEIC)
-    // Level 3-4 → priority 3 (intermediate)
-    // Level 1-2 → priority 4 (basic, less likely as test focus)
-    const toeicPriority = (level >= '5') ? 2 : (level >= '3') ? 3 : 4;
-
-    existing.add(word);
-    added.push({
-      id:             nextId++,
-      word,
-      pos,
-      meaning_zh:     '',
-      meaning_en:     '',
-      example:        '',
-      synonyms:       [],
-      category:       guessCategory(word, pos),
-      difficulty:     LEVEL_TO_DIFF[level] || 2,
-      ceec_level:     parseInt(level),
-      toeic_priority: toeicPriority,
-      times_tested:   0,
-      times_correct:  0,
-    });
-  }
-
-  const merged = [...base, ...added];
-  fs.writeFileSync(VOCAB_FILE, JSON.stringify(merged, null, 2), 'utf8');
-
-  console.log(`Done!`);
-  console.log(`  Base words:      ${base.length}`);
-  console.log(`  CEEC added:      ${added.length}`);
-  console.log(`  Total:           ${merged.length}`);
-  console.log(`  Skipped (basic): ${skipped.tooBasic}`);
-  console.log(`  Skipped (dup):   ${skipped.duplicate}`);
-  console.log(`  Skipped (parse): ${skipped.unparseable}`);
-
-  // Category breakdown
-  const cats = {};
-  added.forEach(w => { cats[w.category] = (cats[w.category] || 0) + 1; });
-  console.log('\nCategory distribution of new words:');
-  Object.entries(cats).sort((a,b) => b[1]-a[1]).forEach(([k,v]) => console.log(`  ${k}: ${v}`));
+  console.log('\n--- Compound expansions (eyeball for junk joins e.g. argue(argument)) ---');
+  console.log('count:', compoundManifest.length);
+  compoundManifest.slice(0, 80).forEach(c => console.log('   .', c.src, '->', c.words.join(', ')));
+  if (compoundManifest.length > 80) console.log('   ... (', compoundManifest.length - 80, 'more)');
 }
 
-main();
+module.exports = { parseCeecEntries, guessCategory, LEVEL_TO_DIFF, isPosToken, expandWordSpec };
+
+if (require.main === module) main();
