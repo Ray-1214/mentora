@@ -8,6 +8,8 @@
     "name": "Mentora"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.112.3",
+    "@google/generative-ai": "^0.24.1",
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
@@ -41,8 +43,18 @@
     "extraResources": [],
     "win": {
       "target": [
-        { "target": "nsis",     "arch": ["x64"] },
-        { "target": "portable", "arch": ["x64"] }
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
       ]
     },
     "nsis": {
