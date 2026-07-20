@@ -1,3 +1,11 @@
+// ============================================================
+// DEPRECATED (2026-07-20) — 不再是 vocab.json 的資料來源。
+// CEEC 詞表已改為從官方 PDF 直接重抽，產出 src/data/ceec-clean.json
+// （見 DECISIONS #32）。app 用的 vocab.json 由 scripts/build-vocab.mjs
+// 從 ceec-clean.json 派生。本檔僅保留作歷史/資料溯源之用，請勿執行。
+// 執行本檔會覆寫 vocab.json，破壞新資料流。
+// ============================================================
+
 // Parse CEEC 高中英文參考詞彙表 into the canonical CEEC word set.
 // Usage (report only, does NOT write any file):  node scripts/parse-ceec.js
 // Exports pure fn parseCeecEntries(mdText) for the vocab rebuild (A2) and tests.
