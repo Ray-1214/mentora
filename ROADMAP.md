@@ -156,7 +156,6 @@
   ⑤ source 全 'ceec'、exams 全 ['學測']。
   **驗收達成**:vocab.json 6169 字、meaning_zh 100%、word 欄無詞性殘留、stage 1a/1b/3 無回歸(distinct 1625 ≥ 1000)。
   (見 DECISIONS #34/#35)
-  **待辦(後續任務)**:移除首頁考試選擇器 / 六模式歸一(§UI,錄 demo 前必做);category 學測化重分類;誤選誘答弱訊號。
 
 ### 近期待辦(B1-B4 之後,錄 demo 前需處理)
 
