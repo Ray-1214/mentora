@@ -157,6 +157,48 @@
   **驗收達成**:vocab.json 6169 字、meaning_zh 100%、word 欄無詞性殘留、stage 1a/1b/3 無回歸(distinct 1625 ≥ 1000)。
   (見 DECISIONS #34/#35)
   **待辦(後續任務)**:移除首頁考試選擇器 / 六模式歸一(§UI,錄 demo 前必做);category 學測化重分類;誤選誘答弱訊號。
+
+### 近期待辦(B1-B4 之後,錄 demo 前需處理)
+
+> 優先序:B7 > 門檻修正 > B6 > B5。B7 與門檻是 demo 阻斷/明顯缺陷,B6/B5 是增強。
+> B7 與門檻修正都動 `src/components/Main/index.js`,建議同一任務一起做。
+
+**B7 — 移除首頁考試選擇器 / 六模式歸一(最高優先,demo 阻斷)**
+- 問題:vocab.json 現為單一學測字庫(exams 全 ['學測']),但首頁(#25 Option A)仍有
+  常駐考試選擇器。使用者選 TOEIC/TOEFL/IELTS 會得到空字庫 → demo 當場破。
+- 做法:移除考試選擇器 UI;六模式改吃單一 CEEC 字庫(不再依 activeExam 過濾)。
+- 對應 DECISIONS #30 ④⑥(當時列於 7/25 資料任務,實際延到此)。
+- 動到:src/components/Main/index.js(+ 可能 App/index.js 路由)。
+
+**meaning_zh 短釋義門檻修正(高優先,與 B7 同檔,一起做)**
+- 問題:Main/index.js 用 `meaning_zh.length > 3` 當「能否出意義題」門檻。此為舊多來源時代
+  (簡體長句釋義)的產物。現在釋義是乾淨簡潔繁中,463 個正確短釋義(演員/蘋果/杏仁/鋁 等
+  1-3 字)被此門檻誤擋,導致這些常用字在 DefinitionMatch/ReverseDrill 出不了題。
+- 確認:vocab.json 6169 筆 meaning_zh 真正空的 = 0 筆;463 筆「缺中文」全是短於 4 字元的
+  正確釋義被 length>3 誤判。
+- 做法:把所有 `meaning_zh.length > 3` / hasZh gate 的門檻由 `> 3` 改為「非空」(length >= 1
+  或 trim() 非空)。散在 Main/index.js 約 6-7 處 + CustomVocab/index.js hasZh。
+- 注意:CustomVocab 的自訂字表也用同門檻(hasZh),一併確認是否要放寬(自訂字若填 1 字釋義
+  應也可用)。
+
+**B6 — category 學測化重分類(中優先,topic 過濾優化)**
+- 問題:build-vocab.mjs 用舊 TOEIC 商業關鍵字啟發式(guessCategory)分類,對學測學術詞
+  命中率極低 → 6169 字中 5995 是 'academic',topic 過濾(selectPriorityWords 用 category)
+  在使用者選 business/finance 等主題時可用字極少。
+- 做法:設計一套適合學測詞的分類(或改用 ceec_level/主題語意),取代 TOEIC 啟發式。
+  具體方案待該任務開始時討論。
+- 動到:scripts/build-vocab.mjs(guessCategory)+ 重跑 build。非 app 邏輯。
+
+**B5 — 誤選誘答弱訊號(低優先,弱點路由增強)**
+- 想法:使用者選錯時,被誤選的誘答字(沒被排除法排掉=可能不熟)也應計入弱訊號,不只
+  記正確答案。
+- 已定範圍:僅適用 Reverse Drill(該模式誘答才是「英文字」;Definition Match 誘答是中文意思、
+  概念不成立;Vocabulary 模式有「認識該字只是用錯」的誤傷風險)。
+- 設計原則(待實作時細化):誤選訊號【不直接進 SRS/streak】(那是被測驗字的機制),記獨立
+  弱訊號,在 getWeakVocabWords 以【低於正面答錯】的權重納入;設較高門檻(誤選 N>2 次才計),
+  避免高頻誘答字灌爆弱點池。
+- 動到:src/services/storage.js(updateWordStats / getWeakVocabWords)。時機:B7 之後。
+
 - 手機版(Capacitor 包同一份 `src/`)。
 - 後端 API(LLM 代理、帳號、token 記帳、廣告 SSV 驗證);帳號同時持久化 per-user profile JSON(弱點/精熟/SRS 狀態 + 習慣/興趣/對話歷史),供 AI 家教跨裝置存取。上市即需此後端 + 主機,屬獨立階段、非 UI 任務。
 - 看廣告換 token(AdMob 獎勵式 + 後端 SSV)。
