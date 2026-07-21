@@ -13,15 +13,17 @@ const filled = W.filter(w => (w.enrichment?.meaning_zh) === 'llm');
 // Common simplified-only chars to catch simplified leakage (subset; extend as needed)
 const SIMPLIFIED = /[个们这里发国过时间对说来学会讲话务实动员东车马鸟点热爱观语题应识别质荣]/;
 const ENGLISH_RUN = /[A-Za-z]{3,}(\s+[A-Za-z]{3,}){2,}/;   // 3+ consecutive English words = leaked sentence
-const REFUSAL = /(抱歉|對不起|無法|sorry|as an ai|i cannot|i'm unable|language model)/i;
+// Kept in lockstep with looksBad() in scripts/enrich-meanings.mjs.
+const REFUSAL = /(as an ai|i cannot|i'm unable|i am unable|language model|我無法回答|我不能提供|無法協助)/i;
 
-const flags = { empty:[], tooShort:[], tooLong:[], noCjk:[], simplified:[], englishRun:[], refusal:[] };
+const flags = { empty:[], tooShort:[], tooLong:[], noCjk:[], hasNewline:[], simplified:[], englishRun:[], refusal:[] };
 for (const w of filled) {
   const s = (w.meaning_zh || '').trim();
   if (!s) { flags.empty.push(w.word); continue; }
-  if (s.length < 2) flags.tooShort.push(w.word);
-  if (s.length > 60) flags.tooLong.push(`${w.word}(${s.length})`);
+  if (s.length < 1) flags.tooShort.push(w.word);
+  if (s.length > 120) flags.tooLong.push(`${w.word}(${s.length})`);
   if (!/[一-鿿]/.test(s)) flags.noCjk.push(w.word);
+  if (/[\r\n]/.test(s)) flags.hasNewline.push(w.word);
   if (SIMPLIFIED.test(s)) flags.simplified.push(`${w.word}:${s.slice(0,20)}`);
   if (ENGLISH_RUN.test(s)) flags.englishRun.push(`${w.word}:${s.slice(0,30)}`);
   if (REFUSAL.test(s)) flags.refusal.push(w.word);

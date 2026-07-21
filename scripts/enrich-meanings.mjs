@@ -102,11 +102,14 @@ async function makeAsk() {
 function looksBad(s) {
   if (!s || !s.trim()) return 'empty';
   const t = s.trim();
-  if (t.length < 2) return 'too-short';
-  if (t.length > 60) return 'too-long';
-  if (!/[一-鿿]/.test(t)) return 'no-cjk';
-  if (/(抱歉|對不起|無法|sorry|as an ai|i cannot|i'm unable)/i.test(t)) return 'refusal';
+  if (t.length < 1) return 'too-short';                 // was <2; single-char meanings (貓/梨) are valid
+  if (t.length > 120) return 'too-long';                // was >60; polysemous function words need room
   if (/[\r\n]/.test(t)) return 'has-newline';
+  if (!/[一-鿿]/.test(t)) return 'no-cjk';
+  // Refusal detection: match only UNAMBIGUOUS refusal phrases, not normal gloss words.
+  // '無法'/'抱歉' removed as standalone triggers because words like sorry/regret/paralyze
+  // legitimately contain them ('抱歉的', '使無法動彈').
+  if (/(as an ai|i cannot|i'm unable|i am unable|language model|我無法回答|我不能提供|無法協助)/i.test(t)) return 'refusal';
   return null;
 }
 
