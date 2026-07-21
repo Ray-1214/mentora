@@ -7,7 +7,7 @@
       "art."
     ],
     "phonetic": "",
-    "meaning_zh": "",
+    "meaning_zh": "[art.] 一（用於可數名詞前，表示某一類事物或人）；一個（用於單數可數名詞前，泛指某類事物中的任意一個）",
     "meaning_en": "",
     "example": "",
     "synonyms": [],
@@ -22,7 +22,7 @@
     "variant_relation": "primary",
     "source": "ceec",
     "enrichment": {
-      "meaning_zh": "pending",
+      "meaning_zh": "llm",
       "phonetic": "pending",
       "example": "pending"
     }
@@ -35,7 +35,7 @@
       "art."
     ],
     "phonetic": "",
-    "meaning_zh": "",
+    "meaning_zh": "[冠] 一個（用於單數可數名詞前，表示某一類事物中的任一個）；一（表示某種身分或類型）",
     "meaning_en": "",
     "example": "",
     "synonyms": [],
@@ -50,7 +50,7 @@
     "variant_relation": "alternative",
     "source": "ceec",
     "enrichment": {
-      "meaning_zh": "pending",
+      "meaning_zh": "llm",
       "phonetic": "pending",
       "example": "pending"
     }
@@ -63,7 +63,7 @@
       "v."
     ],
     "phonetic": "",
-    "meaning_zh": "",
+    "meaning_zh": "[動] 放棄；拋棄；放縱",
     "meaning_en": "",
     "example": "",
     "synonyms": [],
@@ -78,7 +78,7 @@
     "variant_relation": "primary",
     "source": "ceec",
     "enrichment": {
-      "meaning_zh": "pending",
+      "meaning_zh": "llm",
       "phonetic": "pending",
       "example": "pending"
     }
@@ -91,7 +91,7 @@
       "v."
     ],
     "phonetic": "",
-    "meaning_zh": "",
+    "meaning_zh": "縮寫；簡略",
     "meaning_en": "",
     "example": "",
     "synonyms": [],
@@ -106,7 +106,7 @@
     "variant_relation": "primary",
     "source": "ceec",
     "enrichment": {
-      "meaning_zh": "pending",
+      "meaning_zh": "llm",
       "phonetic": "pending",
       "example": "pending"
     }
@@ -119,7 +119,7 @@
       "v."
     ],
     "phonetic": "",
-    "meaning_zh": "",
+    "meaning_zh": "[動] 遵守；服從；忍受",
     "meaning_en": "",
     "example": "",
     "synonyms": [],
@@ -134,7 +134,7 @@
     "variant_relation": "primary",
     "source": "ceec",
     "enrichment": {
-      "meaning_zh": "pending",
+      "meaning_zh": "llm",
       "phonetic": "pending",
       "example": "pending"
     }
@@ -147,7 +147,7 @@
       "n."
     ],
     "phonetic": "",
-    "meaning_zh": "",
+    "meaning_zh": "[名] 能力；才能；本領",
     "meaning_en": "",
     "example": "",
     "synonyms": [],
@@ -162,7 +162,7 @@
     "variant_relation": "primary",
     "source": "ceec",
     "enrichment": {
-      "meaning_zh": "pending",
+      "meaning_zh": "llm",
       "phonetic": "pending",
       "example": "pending"
     }
@@ -175,7 +175,7 @@
       "adj."
     ],
     "phonetic": "",
-    "meaning_zh": "",
+    "meaning_zh": "有能力的；能幹的",
     "meaning_en": "",
     "example": "",
     "synonyms": [],
@@ -190,7 +190,7 @@
     "variant_relation": "primary",
     "source": "ceec",
     "enrichment": {
-      "meaning_zh": "pending",
+      "meaning_zh": "llm",
       "phonetic": "pending",
       "example": "pending"
     }
@@ -203,7 +203,7 @@
       "adj."
     ],
     "phonetic": "",
-    "meaning_zh": "",
+    "meaning_zh": "不正常；異常",
     "meaning_en": "",
     "example": "",
     "synonyms": [],
@@ -218,7 +218,7 @@
     "variant_relation": "primary",
     "source": "ceec",
     "enrichment": {
-      "meaning_zh": "pending",
+      "meaning_zh": "llm",
       "phonetic": "pending",
       "example": "pending"
     }
@@ -260,7 +260,7 @@
       "v."
     ],
     "phonetic": "",
-    "meaning_zh": "",
+    "meaning_zh": "廢除；廢止",
     "meaning_en": "",
     "example": "",
     "synonyms": [],
@@ -275,7 +275,7 @@
     "variant_relation": "primary",
     "source": "ceec",
     "enrichment": {
-      "meaning_zh": "pending",
+      "meaning_zh": "llm",
       "phonetic": "pending",
       "example": "pending"
     }
@@ -317,7 +317,7 @@
       "n."
     ],
     "phonetic": "",
-    "meaning_zh": "",
+    "meaning_zh": "墮胎；人工流產",
     "meaning_en": "",
     "example": "",
     "synonyms": [],
@@ -332,7 +332,7 @@
     "variant_relation": "primary",
     "source": "ceec",
     "enrichment": {
-      "meaning_zh": "pending",
+      "meaning_zh": "llm",
       "phonetic": "pending",
       "example": "pending"
     }
@@ -345,7 +345,7 @@
       "v."
     ],
     "phonetic": "",
-    "meaning_zh": "",
+    "meaning_zh": "大量存在；充滿",
     "meaning_en": "",
     "example": "",
     "synonyms": [],
@@ -360,7 +360,7 @@
     "variant_relation": "primary",
     "source": "ceec",
     "enrichment": {
-      "meaning_zh": "pending",
+      "meaning_zh": "llm",
       "phonetic": "pending",
       "example": "pending"
     }
@@ -432,7 +432,7 @@
       "adv."
     ],
     "phonetic": "",
-    "meaning_zh": "",
+    "meaning_zh": "在國外；到國外",
     "meaning_en": "",
     "example": "",
     "synonyms": [],
@@ -447,7 +447,7 @@
     "variant_relation": "primary",
     "source": "ceec",
     "enrichment": {
-      "meaning_zh": "pending",
+      "meaning_zh": "llm",
       "phonetic": "pending",
       "example": "pending"
     }
@@ -460,7 +460,7 @@
       "adj."
     ],
     "phonetic": "",
-    "meaning_zh": "",
+    "meaning_zh": "突然的；意外的；魯莽的",
     "meaning_en": "",
     "example": "",
     "synonyms": [],
@@ -475,7 +475,7 @@
     "variant_relation": "primary",
     "source": "ceec",
     "enrichment": {
-      "meaning_zh": "pending",
+      "meaning_zh": "llm",
       "phonetic": "pending",
       "example": "pending"
     }
@@ -488,7 +488,7 @@
       "n."
     ],
     "phonetic": "",
-    "meaning_zh": "",
+    "meaning_zh": "缺席；不在；缺乏",
     "meaning_en": "",
     "example": "",
     "synonyms": [],
@@ -503,7 +503,7 @@
     "variant_relation": "primary",
     "source": "ceec",
     "enrichment": {
-      "meaning_zh": "pending",
+      "meaning_zh": "llm",
       "phonetic": "pending",
       "example": "pending"
     }
@@ -545,7 +545,7 @@
       "adj."
     ],
     "phonetic": "",
-    "meaning_zh": "",
+    "meaning_zh": "絕對的；完全的；專制的",
     "meaning_en": "",
     "example": "",
     "synonyms": [],
@@ -560,7 +560,7 @@
     "variant_relation": "primary",
     "source": "ceec",
     "enrichment": {
-      "meaning_zh": "pending",
+      "meaning_zh": "llm",
       "phonetic": "pending",
       "example": "pending"
     }
@@ -573,7 +573,7 @@
       "v."
     ],
     "phonetic": "",
-    "meaning_zh": "",
+    "meaning_zh": "吸收；理解；吸引",
     "meaning_en": "",
     "example": "",
     "synonyms": [],
@@ -588,7 +588,7 @@
     "variant_relation": "primary",
     "source": "ceec",
     "enrichment": {
-      "meaning_zh": "pending",
+      "meaning_zh": "llm",
       "phonetic": "pending",
       "example": "pending"
     }
@@ -601,7 +601,7 @@
       "adj."
     ],
     "phonetic": "",
-    "meaning_zh": "",
+    "meaning_zh": "抽象的；理論的；摘要",
     "meaning_en": "",
     "example": "",
     "synonyms": [],
@@ -616,7 +616,7 @@
     "variant_relation": "primary",
     "source": "ceec",
     "enrichment": {
-      "meaning_zh": "pending",
+      "meaning_zh": "llm",
       "phonetic": "pending",
       "example": "pending"
     }
@@ -629,7 +629,7 @@
       "n."
     ],
     "phonetic": "",
-    "meaning_zh": "",
+    "meaning_zh": "抽象概念；提取；抽象化",
     "meaning_en": "",
     "example": "",
     "synonyms": [],
@@ -644,7 +644,7 @@
     "variant_relation": "primary",
     "source": "ceec",
     "enrichment": {
-      "meaning_zh": "pending",
+      "meaning_zh": "llm",
       "phonetic": "pending",
       "example": "pending"
     }
@@ -657,7 +657,7 @@
       "adj."
     ],
     "phonetic": "",
-    "meaning_zh": "",
+    "meaning_zh": "荒謬的；不合理的；可笑的",
     "meaning_en": "",
     "example": "",
     "synonyms": [],
@@ -672,7 +672,7 @@
     "variant_relation": "primary",
     "source": "ceec",
     "enrichment": {
-      "meaning_zh": "pending",
+      "meaning_zh": "llm",
       "phonetic": "pending",
       "example": "pending"
     }
@@ -685,7 +685,7 @@
       "n."
     ],
     "phonetic": "",
-    "meaning_zh": "",
+    "meaning_zh": "豐富；充足；大量",
     "meaning_en": "",
     "example": "",
     "synonyms": [],
@@ -700,7 +700,7 @@
     "variant_relation": "primary",
     "source": "ceec",
     "enrichment": {
-      "meaning_zh": "pending",
+      "meaning_zh": "llm",
       "phonetic": "pending",
       "example": "pending"
     }
@@ -713,7 +713,7 @@
       "adj."
     ],
     "phonetic": "",
-    "meaning_zh": "",
+    "meaning_zh": "豐富的；充足的",
     "meaning_en": "",
     "example": "",
     "synonyms": [],
@@ -728,7 +728,7 @@
     "variant_relation": "primary",
     "source": "ceec",
     "enrichment": {
-      "meaning_zh": "pending",
+      "meaning_zh": "llm",
       "phonetic": "pending",
       "example": "pending"
     }
@@ -770,7 +770,7 @@
       "adj."
     ],
     "phonetic": "",
-    "meaning_zh": "",
+    "meaning_zh": "學術的；理論的；學院式的",
     "meaning_en": "",
     "example": "",
     "synonyms": [],
@@ -785,7 +785,7 @@
     "variant_relation": "primary",
     "source": "ceec",
     "enrichment": {
-      "meaning_zh": "pending",
+      "meaning_zh": "llm",
       "phonetic": "pending",
       "example": "pending"
     }
@@ -798,7 +798,7 @@
       "n."
     ],
     "phonetic": "",
-    "meaning_zh": "",
+    "meaning_zh": "學院；學術機構；專門學校",
     "meaning_en": "",
     "example": "",
     "synonyms": [],
@@ -813,7 +813,7 @@
     "variant_relation": "primary",
     "source": "ceec",
     "enrichment": {
-      "meaning_zh": "pending",
+      "meaning_zh": "llm",
       "phonetic": "pending",
       "example": "pending"
     }
@@ -826,7 +826,7 @@
       "v."
     ],
     "phonetic": "",
-    "meaning_zh": "",
+    "meaning_zh": "加速；促進",
     "meaning_en": "",
     "example": "",
     "synonyms": [],
@@ -841,7 +841,7 @@
     "variant_relation": "primary",
     "source": "ceec",
     "enrichment": {
-      "meaning_zh": "pending",
+      "meaning_zh": "llm",
       "phonetic": "pending",
       "example": "pending"
     }
@@ -854,7 +854,7 @@
       "n."
     ],
     "phonetic": "",
-    "meaning_zh": "",
+    "meaning_zh": "[名] 口音；腔調；重音",
     "meaning_en": "",
     "example": "",
     "synonyms": [],
@@ -869,7 +869,7 @@
     "variant_relation": "primary",
     "source": "ceec",
     "enrichment": {
-      "meaning_zh": "pending",
+      "meaning_zh": "llm",
       "phonetic": "pending",
       "example": "pending"
     }
@@ -882,7 +882,7 @@
       "v."
     ],
     "phonetic": "",
-    "meaning_zh": "",
+    "meaning_zh": "接受；同意；承認",
     "meaning_en": "",
     "example": "",
     "synonyms": [],
@@ -897,7 +897,7 @@
     "variant_relation": "primary",
     "source": "ceec",
     "enrichment": {
-      "meaning_zh": "pending",
+      "meaning_zh": "llm",
       "phonetic": "pending",
       "example": "pending"
     }
@@ -910,7 +910,7 @@
       "adj."
     ],
     "phonetic": "",
-    "meaning_zh": "",
+    "meaning_zh": "可接受的；合意的；尚可的",
     "meaning_en": "",
     "example": "",
     "synonyms": [],
@@ -925,7 +925,7 @@
     "variant_relation": "primary",
     "source": "ceec",
     "enrichment": {
-      "meaning_zh": "pending",
+      "meaning_zh": "llm",
       "phonetic": "pending",
       "example": "pending"
     }
@@ -938,7 +938,7 @@
       "n."
     ],
     "phonetic": "",
-    "meaning_zh": "",
+    "meaning_zh": "接受；接納；認可",
     "meaning_en": "",
     "example": "",
     "synonyms": [],
@@ -953,7 +953,7 @@
     "variant_relation": "primary",
     "source": "ceec",
     "enrichment": {
-      "meaning_zh": "pending",
+      "meaning_zh": "llm",
       "phonetic": "pending",
       "example": "pending"
     }
@@ -995,7 +995,7 @@
       "adj."
     ],
     "phonetic": "",
-    "meaning_zh": "",
+    "meaning_zh": "可接近的；可進入的；易理解的",
     "meaning_en": "",
     "example": "",
     "synonyms": [],
@@ -1010,7 +1010,7 @@
     "variant_relation": "primary",
     "source": "ceec",
     "enrichment": {
-      "meaning_zh": "pending",
+      "meaning_zh": "llm",
       "phonetic": "pending",
       "example": "pending"
     }
@@ -1052,7 +1052,7 @@
       "n."
     ],
     "phonetic": "",
-    "meaning_zh": "",
+    "meaning_zh": "[名] 意外事件；事故；災禍",
     "meaning_en": "",
     "example": "",
     "synonyms": [],
@@ -1067,7 +1067,7 @@
     "variant_relation": "primary",
     "source": "ceec",
     "enrichment": {
-      "meaning_zh": "pending",
+      "meaning_zh": "llm",
       "phonetic": "pending",
       "example": "pending"
     }
@@ -1080,7 +1080,7 @@
       "adj."
     ],
     "phonetic": "",
-    "meaning_zh": "",
+    "meaning_zh": "意外的；偶然的",
     "meaning_en": "",
     "example": "",
     "synonyms": [],
@@ -1095,7 +1095,7 @@
     "variant_relation": "primary",
     "source": "ceec",
     "enrichment": {
-      "meaning_zh": "pending",
+      "meaning_zh": "llm",
       "phonetic": "pending",
       "example": "pending"
     }
@@ -1137,7 +1137,7 @@
       "v."
     ],
     "phonetic": "",
-    "meaning_zh": "",
+    "meaning_zh": "[動] 容納；提供（住宿）；適應",
     "meaning_en": "",
     "example": "",
     "synonyms": [],
@@ -1152,7 +1152,7 @@
     "variant_relation": "primary",
     "source": "ceec",
     "enrichment": {
-      "meaning_zh": "pending",
+      "meaning_zh": "llm",
       "phonetic": "pending",
       "example": "pending"
     }
@@ -1165,7 +1165,7 @@
       "n."
     ],
     "phonetic": "",
-    "meaning_zh": "",
+    "meaning_zh": "住宿；膳宿；適應",
     "meaning_en": "",
     "example": "",
     "synonyms": [],
@@ -1180,7 +1180,7 @@
     "variant_relation": "primary",
     "source": "ceec",
     "enrichment": {
-      "meaning_zh": "pending",
+      "meaning_zh": "llm",
       "phonetic": "pending",
       "example": "pending"
     }
@@ -1193,7 +1193,7 @@
       "v."
     ],
     "phonetic": "",
-    "meaning_zh": "",
+    "meaning_zh": "[動] 陪同；伴隨；伴奏",
     "meaning_en": "",
     "example": "",
     "synonyms": [],
@@ -1208,7 +1208,7 @@
     "variant_relation": "primary",
     "source": "ceec",
     "enrichment": {
-      "meaning_zh": "pending",
+      "meaning_zh": "llm",
       "phonetic": "pending",
       "example": "pending"
     }
@@ -1222,7 +1222,7 @@
       "n."
     ],
     "phonetic": "",
-    "meaning_zh": "",
+    "meaning_zh": "[動] 完成；實現；達成",
     "meaning_en": "",
     "example": "",
     "synonyms": [],
@@ -1240,7 +1240,7 @@
       "ment"
     ],
     "enrichment": {
-      "meaning_zh": "pending",
+      "meaning_zh": "llm",
       "phonetic": "pending",
       "example": "pending"
     }
@@ -1311,7 +1311,7 @@
       "n."
     ],
     "phonetic": "",
-    "meaning_zh": "",
+    "meaning_zh": "[名] 一致；符合；依照",
     "meaning_en": "",
     "example": "",
     "synonyms": [],
@@ -1326,7 +1326,7 @@
     "variant_relation": "primary",
     "source": "ceec",
     "enrichment": {
-      "meaning_zh": "pending",
+      "meaning_zh": "llm",
       "phonetic": "pending",
       "example": "pending"
     }
@@ -1339,7 +1339,7 @@
       "adv."
     ],
     "phonetic": "",
-    "meaning_zh": "",
+    "meaning_zh": "相應地；因此",
     "meaning_en": "",
     "example": "",
     "synonyms": [],
@@ -1354,7 +1354,7 @@
     "variant_relation": "primary",
     "source": "ceec",
     "enrichment": {
-      "meaning_zh": "pending",
+      "meaning_zh": "llm",
       "phonetic": "pending",
       "example": "pending"
     }
@@ -1396,7 +1396,7 @@
       "adj."
     ],
     "phonetic": "",
-    "meaning_zh": "",
+    "meaning_zh": "需負責任的；應作解釋的；可說明的",
     "meaning_en": "",
     "example": "",
     "synonyms": [],
@@ -1411,7 +1411,7 @@
     "variant_relation": "primary",
     "source": "ceec",
     "enrichment": {
-      "meaning_zh": "pending",
+      "meaning_zh": "llm",
       "phonetic": "pending",
       "example": "pending"
     }
