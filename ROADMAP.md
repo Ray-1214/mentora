@@ -8,10 +8,10 @@
 | 項目 | 內容 |
 |---|---|
 | 版本 | v1.0 |
-| 最後更新 | 2026-07-16 |
+| 最後更新 | 2026-07-20 |
 | 負責人 | Ray(架構 / 決策 / 測試);實作由 Claude Code |
 | 目前階段 | 競賽初賽文件撰寫(企劃書 / 系統需求書 / demo 影片) |
-| 內部版本 | v2.3.0 |
+| 內部版本 | v2.4.0 |
 | 關鍵期限 | 初賽文件截止 2026-08-07 23:59 ・ 入圍公告 09-02 ・ 決賽 11-01 |
 
 ## 怎麼用這份文件(重要)
@@ -22,7 +22,7 @@
 ---
 
 ## 1. 產品概述
-- **是什麼**:AI 輔助英語考試練習桌面 app(TOEIC / TOEFL / IELTS / 學測 GSAT)，正演進為**個人化英語 AI 家教**。
+- **是什麼**:AI 輔助英語考試練習桌面 app(學測 GSAT;TOEIC/TOEFL/IELTS 題型模擬列 Backlog 未來發展)，正演進為**個人化英語 AI 家教**。
 - **解決什麼**:市面 app 多為固定題庫;本案用 LLM 即時生成題目 + 個人化排程(SRS)+ 弱點路由，讓練習「像真的家教，依你的程度與弱點出題」。
 - **給誰**:見 §3。
 
@@ -148,15 +148,15 @@
 - **驗收標準**:至少一種題型能播放音檔作答;音訊走抽象介面;build 通過。
 
 ## 9. Backlog(上架後，非短期)
-- **【7/25 資料任務・近期,非 Backlog】**(訓練營後、demo 錄製前;此任務即授權修正的落地):
-  ① LLM 重生 CEEC 5,686 筆 `meaning_zh`(清除牛津文字,覆蓋率 36%→100%);
-  ② 修 `parse-ceec.js` 複合條目(`agree(ment)`/`actor/actress`/`bicycle/bike`;現有 `"accomplish v"` 類 word 汙染);
-  ③ 從 `vocab.json` 刪除 IELTS/TOEFL/TOEIC 字集(牛津/金山/出處不明資料)—— 授權核心修正;
-  ④ 移除首頁考試選擇器,六模式改吃單一 CEEC 字庫;
-  ⑤ 清理 `source` 標記(剩餘統一標 `ceec`);
-  ⑥ 首頁進入點改為模式選擇(不再選考試)。
-  **驗收**:`vocab.json` 僅剩 CEEC 字;`meaning_zh` 覆蓋率 100%;`word` 欄無詞性殘留;六模式正常;Ray 本機重跑 stage 1a/1b/3 測試無回歸(字數變少但機制與字數無關,uplift 應仍成立)。
-  (見 DECISIONS #30)
+- **【CEEC 資料清理・已完成 2026-07-20】**(提前於 7/25 前執行,實際拆為 B1-B4):
+  ① 資料來源改為官方 PDF 重抽(非 GPT 轉檔),產出 ceec-clean.json 6169 唯一詞條;
+  ② build-vocab.mjs 派生 app 用 vocab.json(exams/pos-string/tier/category);
+  ③ LLM 重生全部 6169 筆繁中釋義(enrich-meanings.mjs,多供應商,可續跑),覆蓋率 100%;
+  ④ 舊多來源字集(牛津/金山/出處不明)已刪,舊管線腳本標 DEPRECATED;
+  ⑤ source 全 'ceec'、exams 全 ['學測']。
+  **驗收達成**:vocab.json 6169 字、meaning_zh 100%、word 欄無詞性殘留、stage 1a/1b/3 無回歸(distinct 1625 ≥ 1000)。
+  (見 DECISIONS #34/#35)
+  **待辦(後續任務)**:移除首頁考試選擇器 / 六模式歸一(§UI,錄 demo 前必做);category 學測化重分類;誤選誘答弱訊號。
 - 手機版(Capacitor 包同一份 `src/`)。
 - 後端 API(LLM 代理、帳號、token 記帳、廣告 SSV 驗證);帳號同時持久化 per-user profile JSON(弱點/精熟/SRS 狀態 + 習慣/興趣/對話歷史),供 AI 家教跨裝置存取。上市即需此後端 + 主機,屬獨立階段、非 UI 任務。
 - 看廣告換 token(AdMob 獎勵式 + 後端 SSV)。

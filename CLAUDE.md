@@ -5,8 +5,9 @@
 > (build order + backlog), DECISIONS.md (decisions + rationale — create as needed).
 
 ## 1. What this is
-Desktop app for AI-assisted English exam practice (TOEIC / TOEFL / IELTS / GSAT),
-evolving into a broader **personalized** English tutor. Current internal version: v2.3.0.
+Desktop app for AI-assisted English exam practice (GSAT 學測; TOEIC / TOEFL / IELTS
+exam-format simulation is on the Backlog, not in the competition build),
+evolving into a broader **personalized** English tutor. Current internal version: v2.4.0.
 Short-term goal: a polished desktop entry for the NIICC 2026 competition (全國大專校院智慧創新暨跨域整合創作競賽, hosted by National Central University), track 數位運算科技與創新應用組. Preliminary document review deadline: 2026-08-07.
 
 ## 2. Stack — do NOT swap any of these without updating this file
@@ -56,6 +57,13 @@ implementations, NOT a rewrite.
   now calls it with the scope-resolved `examBank`, so under a custom scope imported words
   (`exams: []`) are no longer re-filtered away and priorityWords keeps its topic selection.
   Covered by test-w8-part5-priority-scope.mjs.
+
+## 詞彙資料(2026-07-20 起)
+- 單一來源:大考中心《高中英文參考詞彙表》官方 PDF 重抽 → src/data/ceec-clean.json(6169 詞,權威源)。
+- app 讀 src/data/vocab.json,由 scripts/build-vocab.mjs 從 ceec-clean.json 派生(勿手改 vocab.json,改源頭後重跑 build)。
+- 繁中釋義由 scripts/enrich-meanings.mjs(多供應商 LLM,可續跑)生成;端點/模型/金鑰全走 env(MENTORA_LLM_*),不進版控。
+- 舊管線 parse-ceec.js/fetch-vocab.js/rebuild-vocab.js 已 DEPRECATED(見 src/data/README.md、DECISIONS #34)。
+- 授權:CEEC 詞表非 public domain,僅授權非營利使用;商業化前須書面授權(DECISIONS #35)。
 
 ## 6. How we work (this project's workflow)
 - Architecture/scope decisions are made in a separate **planning chat**, then recorded here
