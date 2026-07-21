@@ -11,7 +11,8 @@ const W = doc.words || [];
 const filled = W.filter(w => (w.enrichment?.meaning_zh) === 'llm');
 
 // Common simplified-only chars to catch simplified leakage (subset; extend as needed)
-const SIMPLIFIED = /[个们这里发国过时间对说来学会讲话务实动员东车马鸟点热爱观语题应识别质荣]/;
+// Note: 里 intentionally excluded — it is a normal Traditional char (公里/里程碑), not simplified-only.
+const SIMPLIFIED = /[个们这发国过时间对说来学会讲话务实动员东车马鸟点热爱观语题应识别质荣]/;
 const ENGLISH_RUN = /[A-Za-z]{3,}(\s+[A-Za-z]{3,}){2,}/;   // 3+ consecutive English words = leaked sentence
 // Kept in lockstep with looksBad() in scripts/enrich-meanings.mjs.
 const REFUSAL = /(as an ai|i cannot|i'm unable|i am unable|language model|我無法回答|我不能提供|無法協助)/i;
