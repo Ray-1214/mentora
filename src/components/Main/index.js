@@ -1,13 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import baseVocab from '../../data/vocab.json';
 import { generatePart5, generatePart6, generatePart7, generateVocabQuestions } from '../../services/llm';
-import { selectAnswerWords, selectDistractors, selectPriorityWords, ALL_EXAMS, EXAM_LABELS } from '../../services/vocab';
+import { selectAnswerWords, selectDistractors, selectPriorityWords, hasUsableMeaning } from '../../services/vocab';
 import {
   getWordStats, getExtendedVocab,
   getMasteredCount, getWeakGrammarPoints, getWeakVocabWords,
   getVocabScope, getCustomVocabLists,
 } from '../../services/storage';
 import { shuffle } from '../../utils';
+
+// The vocab bank is the CEEC (學測 / GSAT) reference wordlist. This single label
+// drives the LLM exam context and the per-question tag now that the multi-exam
+// selector is gone (DECISIONS #30).
+const BANK_EXAM = '學測';
 
 // ── Mode definitions ──────────────────────────────────────────────────────────
 // llm: true = needs LLM call; false = instant local generation
@@ -41,7 +46,6 @@ const DIFFICULTY_OPTIONS = [
 
 // ── Component ─────────────────────────────────────────────────────────────────
 const Main = ({ onStart, onStartDirect, onStartLoading, onError, errorMsg, onReview, onVocabManager, onCustomVocab, onSettings }) => {
-  const [exam,            setExam]           = useState('TOEIC');
   const [mode,            setMode]           = useState('quiz');
   const [topics,          setTopics]         = useState(TOPICS.map(t => t.id));
   const [count,           setCount]          = useState(10);
@@ -63,13 +67,13 @@ const Main = ({ onStart, onStartDirect, onStartLoading, onError, errorMsg, onRev
     getCustomVocabLists().then(setCustomLists);
   }, []);
 
-  // Active custom list (if the scope points at one). A custom list overrides the
-  // exam filter for the drill modes; the meaning-based modes need Chinese words.
+  // Active custom list (if the scope points at one). When set it replaces the
+  // built-in bank as the drill range; the meaning-based modes need Chinese words.
   const activeCustomList = scope.source === 'custom' && scope.customListId
     ? customLists.find(l => l.id === scope.customListId)
     : null;
   const customZhCount = activeCustomList
-    ? activeCustomList.words.filter(w => w.meaning_zh && w.meaning_zh.length > 3).length
+    ? activeCustomList.words.filter(hasUsableMeaning).length
     : null;
   const meaningModesDisabled = activeCustomList != null && customZhCount === 0;
 
@@ -89,25 +93,24 @@ const Main = ({ onStart, onStartDirect, onStartLoading, onError, errorMsg, onRev
     if (isLLM) onStartLoading('Generating questions…');
 
     try {
-      const config     = { mode, topics, count, difficulty, exam };
+      const config     = { mode, topics, count, difficulty, exam: BANK_EXAM };
 
-      // Resolve the active vocab scope. A custom list IS its own range, so we
-      // drop exam filtering (activeExam=null) but still run the built-in
-      // sortVocab teaching order. Missing/empty list → silently keep built-in.
+      // Resolve the active vocab scope. The built-in bank is the single CEEC
+      // (學測) wordlist, so there is no exam filtering any more — every mode draws
+      // from the whole resolved bank. A custom list simply replaces that bank with
+      // its own words. Missing/empty custom list → silently keep the built-in bank.
       const scope = await getVocabScope();
       let activeBank = vocabBank;   // built-in (may already include extendedVocab)
-      let activeExam = exam;
+      let usingCustomList = false;
       if (scope.source === 'custom' && scope.customListId) {
         const lists = await getCustomVocabLists();
         const list  = lists.find(l => l.id === scope.customListId);
         if (list && list.words.length > 0) {
           activeBank = list.words;
-          activeExam = null;        // custom list is the range → bypass exam filter
+          usingCustomList = true;
         }
       }
-      const examBank = activeExam
-        ? activeBank.filter(w => w.exams?.includes(activeExam))
-        : [...activeBank];          // custom: no exam filtering
+      const examBank = [...activeBank];   // scope-resolved bank; no exam filter
 
       // Weak vocab from the mistake notebook — routed into the three drills below
       // (higher draw weight). examBank is already scope/exam-resolved.
@@ -117,13 +120,13 @@ const Main = ({ onStart, onStartDirect, onStartLoading, onError, errorMsg, onRev
       if (mode === 'defmatch') {
         const stats       = await getWordStats();
         const answerWords = selectAnswerWords(
-          examBank.filter(w => w.meaning_zh && w.meaning_zh.length > 3),
+          examBank.filter(hasUsableMeaning),
           stats, count, { includeMastered, now: Date.now(), weakWords: weakVocab });
-        const distractorPool = examBank.filter(w => w.meaning_zh && w.meaning_zh.length > 3);
-        const isCustom = scope.source === 'custom' && activeExam === null;
+        const distractorPool = examBank.filter(hasUsableMeaning);
+        const isCustom = usingCustomList;
 
         const data = answerWords.map(aw => {
-          let wrongs = selectDistractors(aw, distractorPool, activeExam, 3, vocabBank);
+          let wrongs = selectDistractors(aw, distractorPool, null, 3, vocabBank);
 
           // Custom lists may repeat a Chinese meaning, which would make two
           // options identical and break the string-based answer check. Keep only
@@ -148,7 +151,7 @@ const Main = ({ onStart, onStartDirect, onStartLoading, onError, errorMsg, onRev
             word:            aw.word,
             wordId:          aw.id,
             phonetic:        aw.phonetic || '',
-            exam,
+            exam:            BANK_EXAM,
             correct_meaning: aw.meaning_zh,
             wrong_meanings:  wrongs.map(w => w.meaning_zh),
             distractor_words:wrongs.map(w => w.word),
@@ -162,17 +165,17 @@ const Main = ({ onStart, onStartDirect, onStartLoading, onError, errorMsg, onRev
       if (mode === 'reversedrill') {
         const stats       = await getWordStats();
         const answerWords = selectAnswerWords(
-          examBank.filter(w => w.meaning_zh && w.meaning_zh.length > 3),
+          examBank.filter(hasUsableMeaning),
           stats, count, { includeMastered, now: Date.now(), weakWords: weakVocab });
 
         const data = answerWords.map(aw => {
-          const wrongs = selectDistractors(aw, examBank, activeExam, 3, vocabBank);
+          const wrongs = selectDistractors(aw, examBank, null, 3, vocabBank);
           return {
             meaning:         aw.meaning_zh,
             correct_word:    aw.word,
             wordId:          aw.id,
             phonetic:        aw.phonetic || '',
-            exam,
+            exam:            BANK_EXAM,
             distractor_words:wrongs.map(w => w.word),
             distractor_ids:  wrongs.map(w => w.id),
             options:         shuffle([aw.word, ...wrongs.map(w => w.word)]),
@@ -187,25 +190,25 @@ const Main = ({ onStart, onStartDirect, onStartLoading, onError, errorMsg, onRev
         const [stats, grammarHints, weakWords] = await Promise.all([
           getWordStats(), getWeakGrammarPoints(), getWeakVocabWords(),
         ]);
-        // examBank is already scope/exam-resolved; selectPriorityWords must NOT
+        // examBank is already scope-resolved; selectPriorityWords must NOT
         // re-filter by exam (that emptied imported custom words — see vocab.js).
         const priorityWords = selectPriorityWords(examBank, stats, { weakWords, topics, count: 10, cap: 12 });
 
-        const questions = await generatePart5(count, topics, difficulty, priorityWords, grammarHints, exam);
+        const questions = await generatePart5(count, topics, difficulty, priorityWords, grammarHints, BANK_EXAM);
         onStart('quiz', questions.map(q => ({
-          ...q, exam, options: shuffle([q.correct_answer, ...q.incorrect_answers]),
+          ...q, exam: BANK_EXAM, options: shuffle([q.correct_answer, ...q.incorrect_answers]),
         })), config);
 
       } else if (mode === 'part6') {
-        const data = await generatePart6(topics[0], difficulty, exam);
-        onStart('part6', { ...data, exam }, config);
+        const data = await generatePart6(topics[0], difficulty, BANK_EXAM);
+        onStart('part6', { ...data, exam: BANK_EXAM }, config);
 
       } else if (mode === 'part7') {
-        const data = await generatePart7(topics[0], difficulty, exam);
+        const data = await generatePart7(topics[0], difficulty, BANK_EXAM);
         data.questions = data.questions.map(q => ({
           ...q, options: shuffle([q.correct_answer, ...q.incorrect_answers]),
         }));
-        onStart('part7', { ...data, exam }, config);
+        onStart('part7', { ...data, exam: BANK_EXAM }, config);
 
       } else if (mode === 'vocab') {
         const stats   = await getWordStats();
@@ -213,9 +216,9 @@ const Main = ({ onStart, onStartDirect, onStartLoading, onError, errorMsg, onRev
           { includeMastered, now: Date.now(), weakWords: weakVocab });
         const wd      = answers.map(aw => ({
           answerWord:  aw,
-          distractors: selectDistractors(aw, examBank, activeExam, 3, vocabBank),
+          distractors: selectDistractors(aw, examBank, null, 3, vocabBank),
         }));
-        const questions = await generateVocabQuestions(wd, exam, difficulty);
+        const questions = await generateVocabQuestions(wd, BANK_EXAM, difficulty);
         onStart('vocab', questions.map((q, i) => {
           const aw  = wd[i].answerWord;
           const dst = wd[i].distractors;
@@ -228,7 +231,7 @@ const Main = ({ onStart, onStartDirect, onStartLoading, onError, errorMsg, onRev
             options:  shuffle([aw.word, ...dst.map(d => d.word)]),
             explanation:    q.explanation || '',
             meaning_zh:     aw.meaning_zh || '',
-            exam,
+            exam:           BANK_EXAM,
           };
         }), config);
       }
@@ -241,7 +244,6 @@ const Main = ({ onStart, onStartDirect, onStartLoading, onError, errorMsg, onRev
 
   const showCount      = !['part6', 'part7'].includes(mode);
   const showTopics     = ['quiz', 'vocab'].includes(mode);
-  const examWordCount  = vocabBank.filter(w => w.exams?.includes(exam)).length;
   const isNoLLM        = ['defmatch','reversedrill'].includes(mode);
 
   // Collapsed "Options" summary — only the settings relevant to the current mode
@@ -264,7 +266,7 @@ const Main = ({ onStart, onStartDirect, onStartLoading, onError, errorMsg, onRev
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingTop: 32 }}>
         <div className="home-logo" style={{ padding: 0, textAlign: 'left' }}>
           <h1>Mentora</h1>
-          <p>AI-powered practice for TOEIC · TOEFL · IELTS · GSAT</p>
+          <p>AI-powered personalized English practice</p>
         </div>
         <button className="btn btn-ghost btn-sm" onClick={onSettings}
           style={{ marginTop: 8, fontSize: 18, padding: '4px 10px' }} title="Settings">⚙</button>
@@ -275,23 +277,6 @@ const Main = ({ onStart, onStartDirect, onStartLoading, onError, errorMsg, onRev
           <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{errorMsg}</p>
         </div>
       )}
-
-      {/* Exam chips */}
-      <div className="config-section">
-        <span className="config-label">Exam</span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div className="chip-group">
-            {ALL_EXAMS.map(e => (
-              <button key={e} className={`chip chip-exam${exam === e ? ' selected' : ''}`} onClick={() => setExam(e)}>
-                {EXAM_LABELS[e]}
-              </button>
-            ))}
-          </div>
-          <span style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-            {examWordCount.toLocaleString()} words
-          </span>
-        </div>
-      </div>
 
       {/* Mode grid */}
       <div className="config-section">

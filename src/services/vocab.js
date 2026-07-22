@@ -197,6 +197,18 @@ export function selectDistractors(answerWord, bank, exam, count = 3, fallbackBan
 
 // ── Exam helpers ──────────────────────────────────────────────────────────────
 
+/**
+ * True if a word carries a usable Traditional-Chinese meaning for the meaning-based
+ * drill modes (Definition Match / Reverse Drill) and the custom-list counters.
+ * Replaces the old `meaning_zh.length > 3` gate — an artifact of the earlier
+ * multi-source data (long Simplified-Chinese glosses). After the CEEC rebuild,
+ * ~463 correct 1–3-character meanings (e.g. 演員 / 蘋果 / 鋁) were wrongly excluded.
+ * The only requirement now is a non-empty meaning.
+ */
+export function hasUsableMeaning(w) {
+  return !!(w && typeof w.meaning_zh === 'string' && w.meaning_zh.trim().length > 0);
+}
+
 export const EXAM_LABELS = {
   TOEIC:  'TOEIC',
   TOEFL:  'TOEFL',

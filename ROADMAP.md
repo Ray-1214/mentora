@@ -8,7 +8,7 @@
 | 項目 | 內容 |
 |---|---|
 | 版本 | v1.0 |
-| 最後更新 | 2026-07-20 |
+| 最後更新 | 2026-07-22 |
 | 負責人 | Ray(架構 / 決策 / 測試);實作由 Claude Code |
 | 目前階段 | 競賽初賽文件撰寫(企劃書 / 系統需求書 / demo 影片) |
 | 內部版本 | v2.4.0 |
@@ -159,17 +159,18 @@
 
 ### 近期待辦(B1-B4 之後,錄 demo 前需處理)
 
-> 優先序:B7 > 門檻修正 > B6 > B5。B7 與門檻是 demo 阻斷/明顯缺陷,B6/B5 是增強。
+> 優先序(B7+門檻已完成):建議 B8 > B9 > B6 > B5 > B10(Ray 可調)。B8 為 demo 阻斷/明顯故障,B9 為體驗增強,B6/B5 為內部增強,B10 為技術債。
 > B7 與門檻修正都動 `src/components/Main/index.js`,建議同一任務一起做。
 
-**B7 — 移除首頁考試選擇器 / 六模式歸一(最高優先,demo 阻斷)**
+**B7 — ✅ 完成(2026-07-22) 移除首頁考試選擇器 / 六模式歸一(最高優先,demo 阻斷)**
 - 問題:vocab.json 現為單一學測字庫(exams 全 ['學測']),但首頁(#25 Option A)仍有
   常駐考試選擇器。使用者選 TOEIC/TOEFL/IELTS 會得到空字庫 → demo 當場破。
 - 做法:移除考試選擇器 UI;六模式改吃單一 CEEC 字庫(不再依 activeExam 過濾)。
 - 對應 DECISIONS #30 ④⑥(當時列於 7/25 資料任務,實際延到此)。
 - 動到:src/components/Main/index.js(+ 可能 App/index.js 路由)。
+- 驗收達成:test-b7-structure 14/14(選擇器指紋清空、BANK_EXAM='學測' 就位、資料前提 TOEIC=0)、既有 stage1a/2/3 + a1-ceec-parse 無回歸、npm run build 通過。實作見 DECISIONS #36。
 
-**meaning_zh 短釋義門檻修正(高優先,與 B7 同檔,一起做)**
+**meaning_zh 短釋義門檻修正 — ✅ 完成(2026-07-22)(高優先,與 B7 同檔,一起做)**
 - 問題:Main/index.js 用 `meaning_zh.length > 3` 當「能否出意義題」門檻。此為舊多來源時代
   (簡體長句釋義)的產物。現在釋義是乾淨簡潔繁中,463 個正確短釋義(演員/蘋果/杏仁/鋁 等
   1-3 字)被此門檻誤擋,導致這些常用字在 DefinitionMatch/ReverseDrill 出不了題。
@@ -179,6 +180,7 @@
   或 trim() 非空)。散在 Main/index.js 約 6-7 處 + CustomVocab/index.js hasZh。
 - 注意:CustomVocab 的自訂字表也用同門檻(hasZh),一併確認是否要放寬(自訂字若填 1 字釋義
   應也可用)。
+- 驗收達成:test-b7-meaning-gate — 舊 `length>3` 門檻誤擋 463 筆正確短釋義,新 `hasUsableMeaning`(非空)全數救回(rescued=463,對回 B4 audit);新門檻為舊門檻嚴格超集。門檻收斂為 vocab.js 單一純函式,Main 4 處 + CustomVocab 1 處改用。
 
 **B6 — category 學測化重分類(中優先,topic 過濾優化)**
 - 問題:build-vocab.mjs 用舊 TOEIC 商業關鍵字啟發式(guessCategory)分類,對學測學術詞
@@ -197,6 +199,25 @@
   弱訊號,在 getWeakVocabWords 以【低於正面答錯】的權重納入;設較高門檻(誤選 N>2 次才計),
   避免高頻誘答字灌爆弱點池。
 - 動到:src/services/storage.js(updateWordStats / getWeakVocabWords)。時機:B7 之後。
+
+**B8 — Part 6(Passage Fill)選項點選跳位(bug,優先於 B6/B5)**
+- 問題:Part 6 作答時點任一選項,畫面會跳到別處(疑似 scroll/focus 跳位);選中的選項仍正確,但體驗破。其他五個模式無此問題。
+- 非 B7 造成:B7 對 part6 僅改 LLM 考試標籤字串與 payload 的 exam tag,未動 part6 渲染元件。
+- demo 影片會錄到 → 優先於 B6/B5。
+- 待辦:下一個對話先唯讀取檔 part6 渲染元件 + App 路由,再定改法。
+- 動到:(取檔後確定)part6 渲染元件。
+
+**B9 — Review Notebook 反序 + 只顯示最近 10(增強)**
+- 需求:錯題本改為最近出錯排最上(反序);預設只顯示最近 10 筆;超過時底部「顯示全部(N)」就地展開,不翻頁。
+- 設計定案:就地展開而非翻頁——錯題本主看最近錯題,展開零件最少、互動最少,合冷靜/漸進揭露定位;翻頁需額外頁碼 state+控制項,筆數上百才划算,demo 情境不會到。
+- 待辦:下一個對話先取 Review/index.js + 讀錯題的 storage 函式(確認現行排序、錯題有無時間戳),再定改法。
+- 動到:src/components/Review/index.js(+ 可能 storage.js 讀取函式)。
+
+**B10 — 移除選擇器後的殘留清理(低優先,技術債)**
+- `ALL_EXAMS`(vocab.js 匯出)app 內已無引用 → 可刪或留待整批清理。
+- `part5Prompt.js` prompt 內硬編 "TOEIC Part 5 (Incomplete Sentences)",不論 exam 參數;CEEC-only 後語意應為學測克漏字。既有 service 瑕疵,B7 未動。
+- 注意:動 part5Prompt.js 須確認 test-stage3-part5-payload.mjs 不回歸。
+- 動到:src/services/vocab.js(ALL_EXAMS)、src/services/part5Prompt.js。
 
 - 手機版(Capacitor 包同一份 `src/`)。
 - 後端 API(LLM 代理、帳號、token 記帳、廣告 SSV 驗證);帳號同時持久化 per-user profile JSON(弱點/精熟/SRS 狀態 + 習慣/興趣/對話歷史),供 AI 家教跨裝置存取。上市即需此後端 + 主機,屬獨立階段、非 UI 任務。

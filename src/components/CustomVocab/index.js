@@ -10,10 +10,7 @@ import {
   deleteCustomVocabList, getVocabScope, setVocabScope,
 } from '../../services/storage.js';
 import { parseVocabText } from '../../services/vocabImport.js';
-
-// A word can be drilled in the meaning-based modes only if it has a usable
-// Chinese meaning — same >3 gate the drill branches use.
-const hasZh = (w) => w.meaning_zh && w.meaning_zh.length > 3;
+import { hasUsableMeaning } from '../../services/vocab.js';
 
 const CustomVocab = ({ onHome }) => {
   const [lists,    setLists]    = useState([]);
@@ -125,7 +122,7 @@ const CustomVocab = ({ onHome }) => {
                     {active && <span className="tag" style={{ marginLeft: 8 }}>Active range</span>}
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                    {l.words.length} words · {l.words.filter(hasZh).length} with Chinese · {new Date(l.createdAt).toLocaleDateString()}
+                    {l.words.length} words · {l.words.filter(hasUsableMeaning).length} with Chinese · {new Date(l.createdAt).toLocaleDateString()}
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>

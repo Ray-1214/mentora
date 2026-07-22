@@ -64,6 +64,7 @@ implementations, NOT a rewrite.
 - 繁中釋義由 scripts/enrich-meanings.mjs(多供應商 LLM,可續跑)生成;端點/模型/金鑰全走 env(MENTORA_LLM_*),不進版控。
 - 舊管線 parse-ceec.js/fetch-vocab.js/rebuild-vocab.js 已 DEPRECATED(見 src/data/README.md、DECISIONS #34)。
 - 授權:CEEC 詞表非 public domain,僅授權非營利使用;商業化前須書面授權(DECISIONS #35)。
+- 單一 CEEC(學測)字庫,六模式不做 exam 過濾(exam 選擇器已移除,DECISIONS #36);LLM 考試脈絡與題目 tag 走模組常數 `BANK_EXAM='學測'`。抽題可用性(能否進 Definition Match / Reverse Drill)判斷走 `vocab.js → hasUsableMeaning`(非空即可,取代舊 `meaning_zh.length > 3`)。
 
 ## 6. How we work (this project's workflow)
 - Architecture/scope decisions are made in a separate **planning chat**, then recorded here
