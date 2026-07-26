@@ -7,6 +7,7 @@
  */
 
 import { isDue } from './srs.js';
+import shuffle from '../utils/shuffle.js';
 
 // ── Word selection ────────────────────────────────────────────────────────────
 
@@ -170,8 +171,8 @@ export function selectDistractors(answerWord, bank, exam, count = 3, fallbackBan
 
   // Shuffle each pool so we get variety
   const shuffled = [
-    ...samePOS.sort(() => Math.random() - 0.5),
-    ...anyPOS.sort(() => Math.random() - 0.5),
+    ...shuffle(samePOS),
+    ...shuffle(anyPOS),
   ];
 
   // Deduplicate
@@ -185,7 +186,9 @@ export function selectDistractors(answerWord, bank, exam, count = 3, fallbackBan
 
   // Final fallback: any word from fallbackBank (built-in bank for custom scope)
   if (result.length < count) {
-    for (const w of fallbackBank.sort(() => Math.random() - 0.5)) {
+    // shuffle() returns a copy; the old in-place sort mutated the caller's
+    // bank array (Main passes the shared vocabBank here). (B8)
+    for (const w of shuffle(fallbackBank)) {
       if (result.length >= count) break;
       const key = w.word.toLowerCase();
       if (!seen.has(key)) { seen.add(key); result.push(w); }

@@ -200,12 +200,13 @@
   避免高頻誘答字灌爆弱點池。
 - 動到:src/services/storage.js(updateWordStats / getWeakVocabWords)。時機:B7 之後。
 
-**B8 — Part 6(Passage Fill)選項點選跳位(bug,優先於 B6/B5)**
-- 問題:Part 6 作答時點任一選項,畫面會跳到別處(疑似 scroll/focus 跳位);選中的選項仍正確,但體驗破。其他五個模式無此問題。
-- 非 B7 造成:B7 對 part6 僅改 LLM 考試標籤字串與 payload 的 exam tag,未動 part6 渲染元件。
-- demo 影片會錄到 → 優先於 B6/B5。
-- 待辦:下一個對話先唯讀取檔 part6 渲染元件 + App 路由,再定改法。
-- 動到:(取檔後確定)part6 渲染元件。
+**B8 — ✅ 完成(2026-07-24) Part 6(Passage Fill)選項點選跳位(bug,優先於 B6/B5)**
+- 問題:Part 6 作答時點任一選項,畫面會跳位(選項每次 render 重排);選中狀態仍正確,其他五模式無此症狀。
+- 根因:Part6Quiz 的 getOpts() 在 render body 內 `opts.sort(() => Math.random()-0.5)`;Part 6 題目物件從未帶 options 欄位 → `!q.options` 恆真 → 每次 re-render(含點選項觸發的 setSelected)都重新亂數排四選項。其他三個 LLM 模式(quiz/part7/vocab)早在 Main 就以 shuffle() 建好 options,只有 part6 漏掉此步。
+- 做了什麼:①Main 的 part6 分支比照 part7,對 data.questions 做 map、`options: shuffle([correct, ...incorrect])` 預先洗一次;②Part6Quiz 刪除 getOpts(),render 內改為只讀 `q.options`(與 Part7Quiz 一致);③順帶把全 repo 4 處比較器式 sort(Main:142 誘答補位、vocab.js:173/174 誘答池、vocab.js:188 fallback 池)收斂到既有無偏 Fisher–Yates util `src/utils/shuffle.js`,vocab.js 以 `import shuffle from '../utils/shuffle.js'` 取用;vocab.js:188 原就地 mutate 呼叫端共享 bank 的副作用一併消除。`src/utils/shuffle.js` 演算法未改(本就是 Fisher–Yates)。
+- 驗收結果:test-b8-part6-options **PASS**(check[4] 全 src/ 無比較器式洗牌轉綠)。回歸:stage1a distinct=**1660**、stage1b **7 組全綠**、stage2 **31/0**、stage3 uplift **3.506x** / control **1.024x**、stage3-part5 payload **100% supplied / 0% empty**、w8-part5-priority-scope 全綠;`npm run build` 通過(僅既有 CRA/browserslist 警告)。另註:test-b2-build-vocab 與 test-w8-rename-clean 為既有 baseline 紅(B3 空釋義快照過期 + w8 guard 誤報鄰檔 test-w8-deadcode-clean.mjs:4 註解的 "QuizApp" 字樣),經 git stash 驗證有/無 B8 皆紅、不在 B8 碼路徑,**非 B8 造成**,列為獨立技術債。
+- 動到:src/components/Part6Quiz/index.js、src/components/Main/index.js、src/services/vocab.js、scripts/test-b8-part6-options.mjs(新)。
+- 對應 DECISIONS #37。
 
 **B9 — Review Notebook 反序 + 只顯示最近 10(增強)**
 - 需求:錯題本改為最近出錯排最上(反序);預設只顯示最近 10 筆;超過時底部「顯示全部(N)」就地展開,不翻頁。

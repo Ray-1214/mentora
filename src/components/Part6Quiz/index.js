@@ -49,15 +49,8 @@ const Part6Quiz = ({ data, config, onFinish, onHome }) => {
     });
   };
 
-  const getOpts = () => {
-    if (!q.options) {
-      const opts = [q.correct_answer, ...q.incorrect_answers];
-      return opts.sort(() => Math.random() - 0.5);
-    }
-    return q.options;
-  };
-
-  const opts = getOpts();
+  // Options are pre-shuffled once in Main (see B8); never re-randomise in render.
+  const opts = q.options;
 
   const handleSelect = (opt) => { if (!revealed) setSelected(opt); };
 

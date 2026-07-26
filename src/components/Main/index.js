@@ -139,7 +139,7 @@ const Main = ({ onStart, onStartDirect, onStartLoading, onError, errorMsg, onRev
               if (w.meaning_zh && !seen.has(w.meaning_zh)) { seen.add(w.meaning_zh); unique.push(w); }
             }
             if (unique.length < 3) {
-              for (const w of distractorPool.slice().sort(() => Math.random() - 0.5)) {
+              for (const w of shuffle(distractorPool)) {
                 if (unique.length >= 3) break;
                 if (w.meaning_zh && !seen.has(w.meaning_zh)) { seen.add(w.meaning_zh); unique.push(w); }
               }
@@ -201,6 +201,13 @@ const Main = ({ onStart, onStartDirect, onStartLoading, onError, errorMsg, onRev
 
       } else if (mode === 'part6') {
         const data = await generatePart6(topics[0], difficulty, BANK_EXAM);
+        // Shuffle once here (same as the part7 branch below). Part 6 questions
+        // previously reached the renderer without `options`, which forced
+        // Part6Quiz to re-randomise on every render — the option list visibly
+        // reordered on each click. Data prep belongs here, not in render. (B8)
+        data.questions = data.questions.map(q => ({
+          ...q, options: shuffle([q.correct_answer, ...q.incorrect_answers]),
+        }));
         onStart('part6', { ...data, exam: BANK_EXAM }, config);
 
       } else if (mode === 'part7') {

@@ -45,6 +45,10 @@ implementations, NOT a rewrite.
 - Cross-file relative imports inside `src/` always carry the `.js` extension (the Node
   verification scripts run as native ESM and won't resolve extensionless paths; webpack is
   unaffected).
+- Randomness belongs in the data-prep layer, never in a render body. Shuffle once when building
+  question objects (Main), and always via src/utils/shuffle.js — never
+  `arr.sort(() => Math.random() - 0.5)` (inconsistent comparator, non-uniform). `src/services/`
+  may import from `src/utils/` but never from `src/components/`.
 
 ## 5. Known issues to keep in mind
 - **Word selection: weighted-random (1a) + Leitner SRS due-priority (1b), done.**
@@ -57,6 +61,11 @@ implementations, NOT a rewrite.
   now calls it with the scope-resolved `examBank`, so under a custom scope imported words
   (`exams: []`) are no longer re-filtered away and priorityWords keeps its topic selection.
   Covered by test-w8-part5-priority-scope.mjs.
+- **Part 6 option-order jump — fixed (B8).** `Part6Quiz` shuffled its options inside the render
+  body (`sort(() => Math.random()-0.5)`), re-randomising the 4 choices on every click; options
+  are now pre-shuffled once in Main (like quiz/part7/vocab) and the renderer only reads
+  `q.options`. All 4 comparator-shuffles in the repo were converged onto the unbiased
+  `src/utils/shuffle.js` (Fisher–Yates). Covered by scripts/test-b8-part6-options.mjs.
 
 ## 詞彙資料(2026-07-20 起)
 - 單一來源:大考中心《高中英文參考詞彙表》官方 PDF 重抽 → src/data/ceec-clean.json(6169 詞,權威源)。
