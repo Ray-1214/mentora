@@ -113,7 +113,7 @@ export async function generatePart5(count, themes, difficulty, priorityWords = [
 // ── Part 6 ───────────────────────────────────────────────────────────────────
 
 export async function generatePart6(theme, difficulty, exam = 'TOEIC') {
-  const themeLabel = THEMES_LABEL[theme] || theme;
+  const themeLabel = THEMES_LABEL[theme] || theme || 'general English';
 
   const prompt = `Generate 1 reading passage with exactly 3 fill-in-the-blank questions. [${exam} format]
 Theme: ${themeLabel}
@@ -140,7 +140,7 @@ Return ONLY a JSON object:
 // ── Part 7 ───────────────────────────────────────────────────────────────────
 
 export async function generatePart7(theme, difficulty, exam = 'TOEIC') {
-  const themeLabel = THEMES_LABEL[theme] || theme;
+  const themeLabel = THEMES_LABEL[theme] || theme || 'general English';
 
   const prompt = `Generate 1 reading comprehension passage with exactly 3 questions. [${exam} format]
 Theme: ${themeLabel}

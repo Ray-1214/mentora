@@ -159,7 +159,7 @@
 
 ### 近期待辦(B1-B4 之後,錄 demo 前需處理)
 
-> 優先序(B7/門檻/B8/B9/B10 已完成):剩 B6 > B5(Ray 可調)。B6 為 topic 分類重整,B5 為弱點路由增強。B9(錯題本反序+recent-10)與 B10(ALL_EXAMS/part5 殘留清理)已於 2026-07-28 完成。
+> 優先序(B6/B7/門檻/B8/B9/B10 已完成):剩 B5(弱點路由增強)+ B11(de-TOEIC 文案/service 殘留清理,B10 衍生)。B6 最終方案為【移除 topic 選擇器】而非重分類(見下),與 B7 移除考試選擇器同一 CEEC-only 邏輯(#30)。
 > B7 與門檻修正都動 `src/components/Main/index.js`,建議同一任務一起做。
 
 **B7 — ✅ 完成(2026-07-22) 移除首頁考試選擇器 / 六模式歸一(最高優先,demo 阻斷)**
@@ -182,13 +182,13 @@
   應也可用)。
 - 驗收達成:test-b7-meaning-gate — 舊 `length>3` 門檻誤擋 463 筆正確短釋義,新 `hasUsableMeaning`(非空)全數救回(rescued=463,對回 B4 audit);新門檻為舊門檻嚴格超集。門檻收斂為 vocab.js 單一純函式,Main 4 處 + CustomVocab 1 處改用。
 
-**B6 — category 學測化重分類(中優先,topic 過濾優化)**
-- 問題:build-vocab.mjs 用舊 TOEIC 商業關鍵字啟發式(guessCategory)分類,對學測學術詞
-  命中率極低 → 6169 字中 5995 是 'academic',topic 過濾(selectPriorityWords 用 category)
-  在使用者選 business/finance 等主題時可用字極少。
-- 做法:設計一套適合學測詞的分類(或改用 ceec_level/主題語意),取代 TOEIC 啟發式。
-  具體方案待該任務開始時討論。
-- 動到:scripts/build-vocab.mjs(guessCategory)+ 重跑 build。非 app 邏輯。
+**B6 — ✅ 完成(2026-07-28) 移除 topic 選擇器(原「category 學測化重分類」,方案改為移除)**
+- 原問題:build-vocab.mjs 的 TOEIC 商業關鍵字啟發式 guessCategory 對學測詞命中率極低 → 6169 字中約 5995 落 'academic',topic 過濾在選 business/finance 等主題時可用字極少。
+- 方案轉向(重分類 → 移除):取回程式確認 topic 過濾對象 = 9 個 TOEIC 商業語域桶(hr/finance/facilities/marketing 在高中通用詞彙裡近乎無成員),即使分類器完美這些桶仍近空 → 問題在「桶集合不適配 CEEC」而非關鍵字寫得夠不夠。GSAT 本無語域分節,「練 Finance 單字」非真實備考模式。差異化在自適應學習(SRS/弱點路由),非主題覆蓋。故比照 B7/#30 移除考試選擇器的同一 CEEC-only 邏輯,移除 topic 選擇器,而非重做分類。
+- 做了什麼:①Main 移除 topic 選擇器整套指紋(TOPICS 常數、topics state、toggleTopic、showTopics、topicsSummary、Topics chip JSX、summary 引用),config 去 topics key;②新增模組常數 DEFAULT_THEME='academic'(既有 THEMES_LABEL key,對 GSAT 通用詞彙語意正確),part6/part7 由傳 topics[0] 改傳 DEFAULT_THEME —— 修正「移除後 topics[0] 為 undefined → THEMES_LABEL[undefined]||undefined → prompt 落 'undefined' 字串」的洩漏;③Part 5 分支 selectPriorityWords 不再傳 topics(向後相容,走 [...bank] 全庫分支),generatePart5 themes 傳 [](空 theme label,克漏字不限主題);④llm.js 的 generatePart6/7 themeLabel 加縱深 fallback `|| 'general English'`(即使日後再傳 undefined 亦不洩漏)。build-vocab.mjs/guessCategory/category 欄位【保留不動】—— category 仍是 llm.js:275 造字寫入欄位,guessCategory 產出留為 zero-cost 殘留(無人再篩);故 B6 未動 build、未重跑、無資料變更。
+- 驗收達成:test-b6-topic-removed(結構 guard,13 檢查:選擇器指紋全 absent、DEFAULT_THEME 就位、part6/7 用之、part5 themes=[]、selectPriorityWords 無 topics、llm.js fallback ×2)先 13/13 FAIL 後 13/13 PASS;test-stage3-part5-payload 無回歸(5/5·3/3·empty 0/0/false)、test-b7-structure ALL PASS、npm run build 通過(死碼移除 −122B);grep topics/topics[0] 於 Main 歸零。
+- 動到:src/components/Main/index.js、src/services/llm.js、test-b6-topic-removed.mjs(新,repo 根)。
+- 對應 DECISIONS #40。
 
 **B5 — 誤選誘答弱訊號(低優先,弱點路由增強)**
 - 想法:使用者選錯時,被誤選的誘答字(沒被排除法排掉=可能不熟)也應計入弱訊號,不只

@@ -25,17 +25,10 @@ const MODES = [
   { id: 'reversedrill', title: 'Reverse Drill',       desc: 'Definition → choose the correct word',  llm: false },
 ];
 
-const TOPICS = [
-  { id: 'business',   label: 'Business'   },
-  { id: 'finance',    label: 'Finance'    },
-  { id: 'hr',         label: 'HR'         },
-  { id: 'travel',     label: 'Travel'     },
-  { id: 'dining',     label: 'Dining'     },
-  { id: 'facilities', label: 'Facilities' },
-  { id: 'marketing',  label: 'Marketing'  },
-  { id: 'technology', label: 'Technology' },
-  { id: 'academic',   label: 'Academic'   },
-];
+// B6: topic selector removed (CEEC-only; no GSAT register split). Part 6/7 still
+// need a single passage theme string — use a neutral, general-vocabulary theme
+// that is an existing THEMES_LABEL key so it maps to a real label, not "undefined".
+const DEFAULT_THEME = 'academic';
 
 const COUNT_OPTIONS = [5, 10, 15, 20];
 const DIFFICULTY_OPTIONS = [
@@ -47,7 +40,6 @@ const DIFFICULTY_OPTIONS = [
 // ── Component ─────────────────────────────────────────────────────────────────
 const Main = ({ onStart, onStartDirect, onStartLoading, onError, errorMsg, onReview, onVocabManager, onCustomVocab, onSettings }) => {
   const [mode,            setMode]           = useState('quiz');
-  const [topics,          setTopics]         = useState(TOPICS.map(t => t.id));
   const [count,           setCount]          = useState(10);
   const [difficulty,      setDifficulty]     = useState('medium');
   const [includeMastered, setIncludeMastered]= useState(false);
@@ -77,14 +69,6 @@ const Main = ({ onStart, onStartDirect, onStartLoading, onError, errorMsg, onRev
     : null;
   const meaningModesDisabled = activeCustomList != null && customZhCount === 0;
 
-  const toggleTopic = (id) => {
-    setTopics(prev =>
-      prev.includes(id)
-        ? prev.length > 1 ? prev.filter(t => t !== id) : prev
-        : [...prev, id]
-    );
-  };
-
   // ── Build question data ───────────────────────────────────────────────────
   const handleStart = async () => {
     const currentMode = MODES.find(m => m.id === mode);
@@ -93,7 +77,7 @@ const Main = ({ onStart, onStartDirect, onStartLoading, onError, errorMsg, onRev
     if (isLLM) onStartLoading('Generating questions…');
 
     try {
-      const config     = { mode, topics, count, difficulty, exam: BANK_EXAM };
+      const config     = { mode, count, difficulty, exam: BANK_EXAM };
 
       // Resolve the active vocab scope. The built-in bank is the single CEEC
       // (學測) wordlist, so there is no exam filtering any more — every mode draws
@@ -192,15 +176,15 @@ const Main = ({ onStart, onStartDirect, onStartLoading, onError, errorMsg, onRev
         ]);
         // examBank is already scope-resolved; selectPriorityWords must NOT
         // re-filter by exam (that emptied imported custom words — see vocab.js).
-        const priorityWords = selectPriorityWords(examBank, stats, { weakWords, topics, count: 10, cap: 12 });
+        const priorityWords = selectPriorityWords(examBank, stats, { weakWords, count: 10, cap: 12 });
 
-        const questions = await generatePart5(count, topics, difficulty, priorityWords, grammarHints, BANK_EXAM);
+        const questions = await generatePart5(count, [], difficulty, priorityWords, grammarHints, BANK_EXAM);
         onStart('quiz', questions.map(q => ({
           ...q, exam: BANK_EXAM, options: shuffle([q.correct_answer, ...q.incorrect_answers]),
         })), config);
 
       } else if (mode === 'part6') {
-        const data = await generatePart6(topics[0], difficulty, BANK_EXAM);
+        const data = await generatePart6(DEFAULT_THEME, difficulty, BANK_EXAM);
         // Shuffle once here (same as the part7 branch below). Part 6 questions
         // previously reached the renderer without `options`, which forced
         // Part6Quiz to re-randomise on every render — the option list visibly
@@ -211,7 +195,7 @@ const Main = ({ onStart, onStartDirect, onStartLoading, onError, errorMsg, onRev
         onStart('part6', { ...data, exam: BANK_EXAM }, config);
 
       } else if (mode === 'part7') {
-        const data = await generatePart7(topics[0], difficulty, BANK_EXAM);
+        const data = await generatePart7(DEFAULT_THEME, difficulty, BANK_EXAM);
         data.questions = data.questions.map(q => ({
           ...q, options: shuffle([q.correct_answer, ...q.incorrect_answers]),
         }));
@@ -250,21 +234,15 @@ const Main = ({ onStart, onStartDirect, onStartLoading, onError, errorMsg, onRev
   };
 
   const showCount      = !['part6', 'part7'].includes(mode);
-  const showTopics     = ['quiz', 'vocab'].includes(mode);
   const isNoLLM        = ['defmatch','reversedrill'].includes(mode);
 
   // Collapsed "Options" summary — only the settings relevant to the current mode
   // (same show/hide conditions as the expanded panel), joined by " · ".
   const difficultyLabel = DIFFICULTY_OPTIONS.find(d => d.id === difficulty)?.label || difficulty;
-  const topicsSummary =
-    topics.length === TOPICS.length ? 'All topics'
-    : topics.length <= 3            ? TOPICS.filter(t => topics.includes(t.id)).map(t => t.label).join(', ')
-    :                                 `${topics.length} topics`;
   const scopeSummary = activeCustomList ? `Custom: ${activeCustomList.name}` : 'Built-in bank';
   const optionsSummary = [
     !isNoLLM   && difficultyLabel,
     showCount  && `${count} questions`,
-    showTopics && topicsSummary,
     scopeSummary,
   ].filter(Boolean).join(' · ');
 
@@ -324,20 +302,6 @@ const Main = ({ onStart, onStartDirect, onStartLoading, onError, errorMsg, onRev
               Done <span className="options-chevron">▾</span>
             </button>
           </div>
-
-          {/* Topics */}
-          {showTopics && (
-            <div className="config-section">
-              <span className="config-label">Topics (multi-select)</span>
-              <div className="chip-group">
-                {TOPICS.map(t => (
-                  <button key={t.id} className={`chip${topics.includes(t.id) ? ' selected' : ''}`} onClick={() => toggleTopic(t.id)}>
-                    {t.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Difficulty */}
           {!isNoLLM && (
