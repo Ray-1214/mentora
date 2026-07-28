@@ -24,7 +24,7 @@ export const THEMES_LABEL = {
 };
 
 // grammarHints: top grammar points the user has been getting wrong (e.g. ["verb tense","prepositions"])
-export function buildPart5Prompt(count, themes, difficulty, priorityWords = [], grammarHints = [], exam = 'TOEIC') {
+export function buildPart5Prompt(count, themes, difficulty, priorityWords = [], grammarHints = [], exam = '學測') {
   const themeLabels = themes.map(t => THEMES_LABEL[t] || t).join(', ');
 
   const vocabHint = priorityWords.length
@@ -35,7 +35,7 @@ export function buildPart5Prompt(count, themes, difficulty, priorityWords = [], 
     ? `IMPORTANT: The user has been getting these grammar points wrong — include extra questions on them: ${grammarHints.join(', ')}.`
     : '';
 
-  return `Generate exactly ${count} TOEIC Part 5 (Incomplete Sentences) questions.
+  return `Generate exactly ${count} multiple-choice sentence-completion (cloze) questions.
 Themes: ${themeLabels}
 Difficulty: ${DIFFICULTY_MAP[difficulty]}
 ${vocabHint}

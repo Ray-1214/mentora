@@ -225,5 +225,3 @@ export const EXAM_CONTEXT = {
   IELTS:  'general and academic English contexts (IELTS format)',
   '學測': 'high school academic English contexts (Taiwan GSAT format)',
 };
-
-export const ALL_EXAMS = ['TOEIC', 'TOEFL', 'IELTS', '學測'];

@@ -159,7 +159,7 @@
 
 ### 近期待辦(B1-B4 之後,錄 demo 前需處理)
 
-> 優先序(B7+門檻已完成):建議 B8 > B9 > B6 > B5 > B10(Ray 可調)。B8 為 demo 阻斷/明顯故障,B9 為體驗增強,B6/B5 為內部增強,B10 為技術債。
+> 優先序(B7/門檻/B8/B9/B10 已完成):剩 B6 > B5(Ray 可調)。B6 為 topic 分類重整,B5 為弱點路由增強。B9(錯題本反序+recent-10)與 B10(ALL_EXAMS/part5 殘留清理)已於 2026-07-28 完成。
 > B7 與門檻修正都動 `src/components/Main/index.js`,建議同一任務一起做。
 
 **B7 — ✅ 完成(2026-07-22) 移除首頁考試選擇器 / 六模式歸一(最高優先,demo 阻斷)**
@@ -200,6 +200,12 @@
   避免高頻誘答字灌爆弱點池。
 - 動到:src/services/storage.js(updateWordStats / getWeakVocabWords)。時機:B7 之後。
 
+**B11 — de-TOEIC 文案/service 殘留整批清理(低優先,技術債,B10 衍生)**
+- 問題:CEEC-only(#30)後 repo 仍有多處 TOEIC 品牌/語域殘留。已知:①Settings/index.js:184 假陳述「~20,000 words across TOEIC · TOEFL · IELTS · 學測」(實為 6169 單一學測,且與 #35 授權敘事矛盾;截圖/評審實機會露);②llm.js 的 EXAM_CONTEXT、`systemPrompt('TOEIC')`、generateVocabBatch 的 TOEIC 級別標籤、generatePart5/6/7 與 generateVocabQuestions 的 `exam='TOEIC'` 預設;③Review/index.js:19 `(item.quizType||'TOEIC')` fallback。
+- 做法:待該任務開始時逐一評估;Settings:184 優先(對外可見)。
+- 動到:src/components/Settings/index.js、src/services/llm.js、src/components/Review/index.js。
+- 兩支既有 baseline 紅測試(test-b2-build-vocab 的 B3 空釋義快照過期、test-w8-rename-clean 誤報鄰檔註解)亦屬技術債,可併此輪或另立處理。
+
 **B8 — ✅ 完成(2026-07-24) Part 6(Passage Fill)選項點選跳位(bug,優先於 B6/B5)**
 - 問題:Part 6 作答時點任一選項,畫面會跳位(選項每次 render 重排);選中狀態仍正確,其他五模式無此症狀。
 - 根因:Part6Quiz 的 getOpts() 在 render body 內 `opts.sort(() => Math.random()-0.5)`;Part 6 題目物件從未帶 options 欄位 → `!q.options` 恆真 → 每次 re-render(含點選項觸發的 setSelected)都重新亂數排四選項。其他三個 LLM 模式(quiz/part7/vocab)早在 Main 就以 shuffle() 建好 options,只有 part6 漏掉此步。
@@ -208,17 +214,22 @@
 - 動到:src/components/Part6Quiz/index.js、src/components/Main/index.js、src/services/vocab.js、scripts/test-b8-part6-options.mjs(新)。
 - 對應 DECISIONS #37。
 
-**B9 — Review Notebook 反序 + 只顯示最近 10(增強)**
+**B9 — ✅ 完成(2026-07-28) Review Notebook 反序 + 只顯示最近 10(增強)**
 - 需求:錯題本改為最近出錯排最上(反序);預設只顯示最近 10 筆;超過時底部「顯示全部(N)」就地展開,不翻頁。
 - 設計定案:就地展開而非翻頁——錯題本主看最近錯題,展開零件最少、互動最少,合冷靜/漸進揭露定位;翻頁需額外頁碼 state+控制項,筆數上百才划算,demo 情境不會到。
-- 待辦:下一個對話先取 Review/index.js + 讀錯題的 storage 函式(確認現行排序、錯題有無時間戳),再定改法。
-- 動到:src/components/Review/index.js(+ 可能 storage.js 讀取函式)。
+- 做了什麼:①`wrongAnswers` 為嚴格 append 序(舊→新),反轉一份副本得新→舊,不依賴 `addedAt`(舊資料可能無此欄、排序遇缺值位置不定);②`items` 維持儲存序不動 → 刪除仍以 `globalIdx = items.indexOf(item)` 對應 `removeWrongAnswer` 的 splice 索引(反轉/切片只作用於 render 副本 `visibleItems`,物件參照不變);③預設 `slice(0, RECENT_LIMIT=10)`,>10 時底部 `Show all (N)` / `Show less` toggle 就地展開/收合,不翻頁;④切換 quizType 分頁時 `setShowAll(false)` 收合回最近 10;⑤React key 由顯示位置索引改為 `${quizType}::${question}` 穩定鍵(該組合經 addWrongAnswer 去重故唯一)。storage.js / handleExportAnki(仍匯出完整清單)/ buildAnkiTSV / 弱點摘要 / count 行未動。
+- 驗收達成:test-b9-review-recent(結構 guard,9 檢查全綠:showAll state、RECENT_LIMIT=10、reverse-a-copy、slice、visibleItems、delete-index invariant `items.indexOf`、Show all/less 標籤、舊 `filtered.map(` renderer 已 absent);手動驗證新錯題置頂/預設 10 筆/toggle 展開收合/切分頁收合/刪最上最下各正確不誤刪。回歸:B10 同輪 test-stage3-part5-payload 100% 無回歸、test-b7-structure 14 項全綠,既有 baseline 紅(test-b2-build-vocab、test-w8-rename-clean)因果與三改檔互斥、非本輪引入。
+- 動到:src/components/Review/index.js、test-b9-review-recent.mjs(新,repo 根)。
+- 對應 DECISIONS #38。
 
-**B10 — 移除選擇器後的殘留清理(低優先,技術債)**
+**B10 — ✅ 完成(2026-07-28) 移除選擇器後的殘留清理(低優先,技術債)**
 - `ALL_EXAMS`(vocab.js 匯出)app 內已無引用 → 可刪或留待整批清理。
 - `part5Prompt.js` prompt 內硬編 "TOEIC Part 5 (Incomplete Sentences)",不論 exam 參數;CEEC-only 後語意應為學測克漏字。既有 service 瑕疵,B7 未動。
-- 注意:動 part5Prompt.js 須確認 test-stage3-part5-payload.mjs 不回歸。
-- 動到:src/services/vocab.js(ALL_EXAMS)、src/services/part5Prompt.js。
+- 做了什麼:①刪 vocab.js 的 `export const ALL_EXAMS`(grep 證全 src/ 僅此 export、無任何 consumer;唯一其他命中 test-b7-structure.mjs:28 是對 Main 做文字掃描的 B7 guard、不 import 此符號);②part5Prompt.js 第 38 行硬編 `TOEIC Part 5 (Incomplete Sentences)` → `multiple-choice sentence-completion (cloze) questions`,`buildPart5Prompt` 的 `exam` 預設由 `'TOEIC'` 改 `'學測'`(第 58 行 `Context appropriate for ${exam}` 與 DIFFICULTY_MAP/THEMES_LABEL 不動)。
+- 驗收達成:test-stage3-part5-payload PASS(weak 5/5、grammar 3/3、empty 0/0/false — 無回歸,測試不斷言字面 "TOEIC Part 5" 且顯式傳 exam);grep `ALL_EXAMS` src+scripts = 0、grep `TOEIC Part 5` part5Prompt.js = 0;test-b7-structure ALL PASS(刪 export 未破壞「Main: no ALL_EXAMS」guard)。既有 baseline 紅同 B9 說明、非本輪引入。
+- 動到:src/services/vocab.js(刪 ALL_EXAMS)、src/services/part5Prompt.js(去 TOEIC 品牌字樣 + exam 預設改學測)。
+- 對應 DECISIONS #39。
+- 後續待辦(未在本輪 scope,列 B11):Settings/index.js:184 仍寫「Ships with ~20,000 words across TOEIC · TOEFL · IELTS · 學測」,CEEC-only 後為不實陳述且與 #30/#35 授權敘事矛盾;更大範圍 de-TOEIC(llm.js EXAM_CONTEXT/systemPrompt('TOEIC')/generateVocabBatch 級別標籤/各 generate* 的 exam='TOEIC' 預設、Review:19 quizType fallback 'TOEIC')留一次整批清理。
 
 - 手機版(Capacitor 包同一份 `src/`)。
 - 後端 API(LLM 代理、帳號、token 記帳、廣告 SSV 驗證);帳號同時持久化 per-user profile JSON(弱點/精熟/SRS 狀態 + 習慣/興趣/對話歷史),供 AI 家教跨裝置存取。上市即需此後端 + 主機,屬獨立階段、非 UI 任務。

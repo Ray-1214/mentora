@@ -57,6 +57,7 @@ const Review = ({ onHome }) => {
   const [filter,   setFilter]   = useState('All');
   const [exporting,setExporting]= useState(false);
   const [exportMsg,setExportMsg]= useState('');
+  const [showAll,  setShowAll]  = useState(false);
 
   useEffect(() => {
     getWrongAnswers().then(setItems);
@@ -66,6 +67,15 @@ const Review = ({ onHome }) => {
 
   const types    = ['All', ...Array.from(new Set(items.map(i => i.quizType)))];
   const filtered = filter === 'All' ? items : items.filter(i => i.quizType === filter);
+
+  // B9: newest-first + collapse to recent N. wrongAnswers is stored in append
+  // order (oldest→newest), so reversing a COPY yields newest-first without an
+  // addedAt sort (no dependence on addedAt existing on every entry). Reverse a
+  // COPY only — `items` must stay in stored order so items.indexOf(item) below
+  // still maps to the correct removeWrongAnswer() splice index.
+  const RECENT_LIMIT = 10;
+  const filteredNewestFirst = [...filtered].reverse();
+  const visibleItems = showAll ? filteredNewestFirst : filteredNewestFirst.slice(0, RECENT_LIMIT);
 
   // Frequency counts derived from the already-loaded wrong answers (no extra
   // storage call): weak vocab tallies `word` across the three drill modes; weak
@@ -171,7 +181,7 @@ const Review = ({ onHome }) => {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
             <div className="nav-tabs" style={{ border: 'none', marginBottom: 0 }}>
               {types.map(t => (
-                <button key={t} className={`nav-tab${filter === t ? ' active' : ''}`} onClick={() => setFilter(t)}>
+                <button key={t} className={`nav-tab${filter === t ? ' active' : ''}`} onClick={() => { setFilter(t); setShowAll(false); }}>
                   {t}
                 </button>
               ))}
@@ -200,10 +210,10 @@ const Review = ({ onHome }) => {
             {filter !== 'All' && ` in ${filter}`}
           </p>
 
-          {filtered.map((item, i) => {
+          {visibleItems.map((item) => {
             const globalIdx = items.indexOf(item);
             return (
-              <div key={i} className="review-item">
+              <div key={`${item.quizType}::${item.question}`} className="review-item">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
                   <div style={{ flex: 1 }}>
                     <div style={{ marginBottom: 6, display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -240,6 +250,18 @@ const Review = ({ onHome }) => {
               </div>
             );
           })}
+
+          {filteredNewestFirst.length > RECENT_LIMIT && (
+            <div style={{ textAlign: 'center', marginTop: 12 }}>
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => setShowAll(s => !s)}
+                style={{ color: 'var(--text-muted)' }}
+              >
+                {showAll ? 'Show less' : `Show all (${filteredNewestFirst.length})`}
+              </button>
+            </div>
+          )}
 
           {/* Anki import instructions */}
           <div style={{ marginTop: 24, padding: '14px 16px', background: 'var(--tag-bg)', borderRadius: 'var(--radius)', fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.8 }}>
