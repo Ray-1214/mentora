@@ -159,7 +159,7 @@
 
 ### 近期待辦(B1-B4 之後,錄 demo 前需處理)
 
-> 優先序(B6/B7/門檻/B8/B9/B10/B11 已完成):剩 B5(弱點路由增強,僅 Reverse Drill)。B6 最終方案為【移除 topic 選擇器】而非重分類(見下),與 B7 移除考試選擇器同一 CEEC-only 邏輯(#30)。B11(de-TOEIC 文案/service 殘留清理)已於 2026-07-29 完成。
+> 近期待辦(B5–B11)【全部完成,2026-07-29】。剩餘為競賽後 / 其他競賽之強化候選(見本節下方框與 §9 上半)。B6 最終方案為【移除 topic 選擇器】而非重分類,與 B7 移除考試選擇器同一 CEEC-only 邏輯(#30)。下一里程碑 = 初賽交件(企劃書 / 系統需求書 / 3 分鐘 demo 影片,8/7 截止)。
 > B7 與門檻修正都動 `src/components/Main/index.js`,建議同一任務一起做。
 
 **B7 — ✅ 完成(2026-07-22) 移除首頁考試選擇器 / 六模式歸一(最高優先,demo 阻斷)**
@@ -190,15 +190,15 @@
 - 動到:src/components/Main/index.js、src/services/llm.js、test-b6-topic-removed.mjs(新,repo 根)。
 - 對應 DECISIONS #40。
 
-**B5 — 誤選誘答弱訊號(低優先,弱點路由增強)**
-- 想法:使用者選錯時,被誤選的誘答字(沒被排除法排掉=可能不熟)也應計入弱訊號,不只
-  記正確答案。
-- 已定範圍:僅適用 Reverse Drill(該模式誘答才是「英文字」;Definition Match 誘答是中文意思、
-  概念不成立;Vocabulary 模式有「認識該字只是用錯」的誤傷風險)。
-- 設計原則(待實作時細化):誤選訊號【不直接進 SRS/streak】(那是被測驗字的機制),記獨立
-  弱訊號,在 getWeakVocabWords 以【低於正面答錯】的權重納入;設較高門檻(誤選 N>2 次才計),
-  避免高頻誘答字灌爆弱點池。
-- 動到:src/services/storage.js(updateWordStats / getWeakVocabWords)。時機:B7 之後。
+**B5 — ✅ 完成(2026-07-29) 誤選誘答弱訊號(弱點路由增強,僅 Reverse Drill)**
+- 想法:使用者選錯時,被誤選的誘答字(沒被排除法排掉=可能不熟)也應計入弱訊號,不只記正確答案。
+- 已定範圍:僅適用 Reverse Drill(該模式誘答才是「英文字」;Definition Match 誘答是中文意思、概念不成立;Vocabulary 模式有「認識該字只是用錯」的誤傷風險)。
+- 做了什麼:getWeakVocabWords 改為回傳【兩個合併去重的訊號】——①主訊號(行為不變):正解字在三個 drill 模式被答錯 n>=2;②次訊號(B5):誘答字在 Reverse Drill 被誤選 n>=3,自 wrongAnswers[].userAnswer 讀取(該欄在 ReverseDrill 答錯時即寫入 selected,資料已就位、無須改元件)。次訊號用【更嚴門檻(n>=3 vs 主 n>=2)】實現「低於正面答錯的權重納入」語意(更難進池=實質更低影響,不需改 WEAK_BONUS 數值),case-normalize 後對主訊號去重,並【append 在主訊號之後】使正解答錯字在路由列表排前。誤選訊號【不進 SRS/wordStats】(僅在 getWeakVocabWords 就地統計 wrongAnswers,不碰 updateWordStats / streak)。
+- 路徑選擇:取「只改 getWeakVocabWords 讀 wrongAnswers.userAnswer」(路徑 A),而非「改 updateWordStats 簽章 + wordStats 加欄位 + 元件傳參」(路徑 B)——資料已在 wrongAnswers 就位、零 migration、不碰寫入路徑與元件,較路徑 B 低風險。
+- 侷限(有意):wrongAnswers 上限 200 筆(addWrongAnswer 的 slice(-200)),兩訊號皆為【有意的近期視窗】,舊誤選隨錯題滾動淡出=「近期弱點」語意正確,非 bug。
+- 驗收達成:test-b5-misselect-signal —(A)static 四項(讀 userAnswer / 門檻 n>=3 / 去重 / append 順序)先全紅後全綠;(B)behavioral 以內聯演算法複刻對合成 wrongAnswers 驗算法,五項全綠(主訊號 banana 在、次訊號 grape(3×)在、olive(2×)被門檻擋、apple 同時主+次訊號去重為一、主排在次前)。回歸:test-stage3-weakness-routing uplift 3.506×/control 1.024× 不變、test-stage1b-srs ALL PASS、npm run build 通過(+83B)。註:(B)為複刻非直接 import storage.js(electron 依賴無法原生 node import),複刻與 storage.js 同步為人工責任;WEAK_BONUS 實際出題效果待手動 electron-dev 驗。
+- 動到:src/services/storage.js(僅 getWeakVocabWords 一個函式)、test-b5-misselect-signal.mjs(新,repo 根)。
+- 對應 DECISIONS #42。
 
 **B11 — ✅ 完成(2026-07-29) de-TOEIC 文案/service 殘留整批清理(技術債,B10 衍生)**
 - 問題:CEEC-only(#30)後 repo 仍有多處 TOEIC 品牌/語域殘留,分三層——對外可見(Settings:184 假字數「~20,000 words across TOEIC·TOEFL·IELTS·學測」,實為 6169 單一學測、與 #35 授權敘事矛盾;VocabManager:7-10 造字 level desc 的 TOEIC 分數帶)、造字語域(llm.js VOCAB_LEVELS + prompt 硬編 TOEIC/商業語域)、latent 死值(llm.js 4 個 exam='TOEIC' 預設 + systemPrompt fallback/base、Review 的 Anki tag fallback,現況因呼叫端覆寫永不觸發)。

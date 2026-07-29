@@ -136,21 +136,58 @@ export async function getWeakGrammarPoints() {
   return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([k]) => k);
 }
 
-// Return words the user has answered incorrectly 2+ times recently.
-// DefinitionMatch/ReverseDrill mistakes were recorded but never routed; Stage 3
-// routes weak vocab into all three drills, so all three feed the signal (this
-// also enriches Part 5 priorityWords, which is fine).
+// Return words the user has been getting wrong recently, routed into the three
+// drill modes' answer selection (weighted via WEAK_BONUS in vocab.js).
+//
+// TWO signals, combined & deduped:
+//   (1) PRIMARY — the *answer* word missed 2+ times across the three drill modes
+//       (Vocabulary / Definition Match / Reverse Drill). Strong signal: the user
+//       was tested ON this word and got it wrong.
+//   (2) SECONDARY (B5) — a *distractor* the user mis-selected 3+ times in Reverse
+//       Drill. Weaker signal (a mis-pick may mean "two options looked close", not
+//       "doesn't know the word"), so it uses a STRICTER threshold (>=3 vs >=2) and
+//       is appended AFTER the primary words, so primary weak words rank first in
+//       the routed list. Reverse-Drill-only by design: there the distractor
+//       (userAnswer) is an English word; in Definition Match the distractor is a
+//       Chinese meaning, and in Vocabulary "knew the word but slipped" would
+//       cause false positives — see DECISIONS #42 / ROADMAP B5.
+//
+// NOTE: wrongAnswers is capped at the last 200 entries (see addWrongAnswer), so
+// both signals are an intentional RECENT window — stale mistakes age out, which
+// matches "recent weakness" semantics rather than being a bug.
 export async function getWeakVocabWords() {
-  const wrong  = await getWrongAnswers();
-  const counts = {};
+  const wrong = await getWrongAnswers();
+
+  // (1) primary: answer word missed across the three drill modes
+  const answerCounts = {};
   wrong
     .filter(w => ['Vocabulary', 'Definition Match', 'Reverse Drill'].includes(w.quizType) && w.word)
-    .slice(-120)  // event stream is now ~3x larger since it spans three modes
-    .forEach(w => { counts[w.word] = (counts[w.word] || 0) + 1; });
-  return Object.entries(counts)
+    .slice(-120)  // event stream spans three modes
+    .forEach(w => { answerCounts[w.word] = (answerCounts[w.word] || 0) + 1; });
+  const primary = Object.entries(answerCounts)
     .filter(([, n]) => n >= 2)
     .sort((a, b) => b[1] - a[1])
     .map(([word]) => word);
+
+  // (2) secondary (B5): distractor mis-selected in Reverse Drill (userAnswer holds
+  // the English word the user wrongly picked). Stricter threshold; case-normalized
+  // so it dedupes cleanly against primary.
+  const missCounts = {};
+  wrong
+    .filter(w => w.quizType === 'Reverse Drill' && w.userAnswer)
+    .slice(-120)
+    .forEach(w => {
+      const key = String(w.userAnswer).toLowerCase();
+      missCounts[key] = (missCounts[key] || 0) + 1;
+    });
+  const primarySet = new Set(primary.map(x => String(x).toLowerCase()));
+  const secondary = Object.entries(missCounts)
+    .filter(([, n]) => n >= 3)
+    .sort((a, b) => b[1] - a[1])
+    .map(([word]) => word)
+    .filter(word => !primarySet.has(word));  // dedupe: primary already covers it
+
+  return [...primary, ...secondary];
 }
 
 // ── Quiz history ──────────────────────────────────────────────────────────────
