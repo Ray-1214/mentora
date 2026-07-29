@@ -8,14 +8,14 @@ const LLM_API_KEY_DEFAULT  = process.env.REACT_APP_LLM_API_KEY  || '';
 const LLM_MODEL_DEFAULT    = process.env.REACT_APP_LLM_MODEL    || 'gpt-4o-mini';
 
 function systemPrompt(exam) {
-  const ctx = EXAM_CONTEXT[exam] || EXAM_CONTEXT['TOEIC'];
+  const ctx = EXAM_CONTEXT[exam] || EXAM_CONTEXT['學測'];
   return `You are an expert language test designer.
 Create vocabulary and grammar questions for ${ctx}.
 IMPORTANT: Return ONLY raw JSON — no markdown, no code fences, no explanation text before or after.`;
 }
 
 // Keep a default for non-exam-specific calls
-const SYSTEM_PROMPT_BASE = systemPrompt('TOEIC');
+const SYSTEM_PROMPT_BASE = systemPrompt('學測');
 
 // DIFFICULTY_MAP / THEMES_LABEL are imported from ./part5Prompt.js (single source).
 
@@ -104,7 +104,7 @@ function parseObject(raw) {
 // ── Part 5 ───────────────────────────────────────────────────────────────────
 
 // grammarHints: top grammar points the user has been getting wrong (e.g. ["verb tense","prepositions"])
-export async function generatePart5(count, themes, difficulty, priorityWords = [], grammarHints = [], exam = 'TOEIC') {
+export async function generatePart5(count, themes, difficulty, priorityWords = [], grammarHints = [], exam = '學測') {
   const prompt = buildPart5Prompt(count, themes, difficulty, priorityWords, grammarHints, exam);
   const raw = await callLLM(systemPrompt(exam), prompt);
   return parseArray(raw);
@@ -112,7 +112,7 @@ export async function generatePart5(count, themes, difficulty, priorityWords = [
 
 // ── Part 6 ───────────────────────────────────────────────────────────────────
 
-export async function generatePart6(theme, difficulty, exam = 'TOEIC') {
+export async function generatePart6(theme, difficulty, exam = '學測') {
   const themeLabel = THEMES_LABEL[theme] || theme || 'general English';
 
   const prompt = `Generate 1 reading passage with exactly 3 fill-in-the-blank questions. [${exam} format]
@@ -139,7 +139,7 @@ Return ONLY a JSON object:
 
 // ── Part 7 ───────────────────────────────────────────────────────────────────
 
-export async function generatePart7(theme, difficulty, exam = 'TOEIC') {
+export async function generatePart7(theme, difficulty, exam = '學測') {
   const themeLabel = THEMES_LABEL[theme] || theme || 'general English';
 
   const prompt = `Generate 1 reading comprehension passage with exactly 3 questions. [${exam} format]
@@ -182,7 +182,7 @@ Return ONLY a JSON object:
 // wordsWithDistractors: [{ answerWord: WordEntry, distractors: WordEntry[] }, ...]
 // The LLM only writes the sentence; options are pre-selected so we can track all 4 IDs.
 
-export async function generateVocabQuestions(wordsWithDistractors, exam = 'TOEIC', difficulty = 'medium') {
+export async function generateVocabQuestions(wordsWithDistractors, exam = '學測', difficulty = 'medium') {
   const items = wordsWithDistractors.map((item, i) => {
     const w = item.answerWord;
     const def = w.meaning_zh || w.meaning_en || '';
@@ -217,13 +217,13 @@ Rules:
 }
 
 // ── Vocab Bank Expansion ──────────────────────────────────────────────────────
-// Generates new TOEIC vocabulary entries to grow the word bank toward 5000-8000 words.
+// Generates new vocabulary entries (VocabManager expansion) to grow the word bank.
 
 const VOCAB_LEVELS = {
-  basic:    'TOEIC 400-600 level (everyday office and travel vocabulary)',
-  mid:      'TOEIC 600-730 level (intermediate business and finance vocabulary)',
-  advanced: 'TOEIC 730-860 level (formal business, legal, and academic vocabulary)',
-  expert:   'TOEIC 860-990 level (sophisticated professional vocabulary, academic English)',
+  basic:    'everyday high-frequency vocabulary',
+  mid:      'intermediate vocabulary',
+  advanced: 'upper-intermediate, formal and academic vocabulary',
+  expert:   'advanced, sophisticated academic English vocabulary',
 };
 
 export async function generateVocabBatch(level, category, existingWords, batchSize = 50) {
@@ -232,15 +232,15 @@ export async function generateVocabBatch(level, category, existingWords, batchSi
     ? `Do NOT include any of these words: ${existingWords.slice(0, 200).join(', ')}.`
     : '';
 
-  const prompt = `Generate exactly ${batchSize} new TOEIC vocabulary words.
+  const prompt = `Generate exactly ${batchSize} new English vocabulary words.
 Level: ${VOCAB_LEVELS[level] || VOCAB_LEVELS.mid}
 Category: ${categoryLabel}
 ${exclusion}
 
 Requirements:
-- Words must be high-frequency TOEIC words relevant to ${categoryLabel}
+- Words must be high-frequency words relevant to ${categoryLabel}
 - Include verbs, nouns, adjectives, adverbs, and useful phrases
-- All words should appear in real business communications
+- Words should be useful in general and academic English
 - Traditional Chinese meaning must be accurate
 
 Return ONLY a JSON array of exactly ${batchSize} objects:

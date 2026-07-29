@@ -16,7 +16,7 @@ function buildAnkiTSV(items) {
   ];
 
   items.forEach(item => {
-    const type = (item.quizType || 'TOEIC').replace(/\s+/g, '_');
+    const type = (item.quizType || 'Practice').replace(/\s+/g, '_');
     const tag  = `mentora ${type.toLowerCase()}${item.word ? ` ${item.word}` : ''}`;
 
     let front, back;

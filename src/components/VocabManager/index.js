@@ -4,10 +4,10 @@ import { generateVocabBatch } from '../../services/llm';
 import { getExtendedVocab, appendExtendedVocab, clearExtendedVocab } from '../../services/storage';
 
 const LEVELS = [
-  { id: 'basic',    label: 'Basic',    desc: 'TOEIC 400–600' },
-  { id: 'mid',      label: 'Mid',      desc: 'TOEIC 600–730' },
-  { id: 'advanced', label: 'Advanced', desc: 'TOEIC 730–860' },
-  { id: 'expert',   label: 'Expert',   desc: 'TOEIC 860–990' },
+  { id: 'basic',    label: 'Basic',    desc: 'Everyday / high-frequency' },
+  { id: 'mid',      label: 'Mid',      desc: 'Intermediate' },
+  { id: 'advanced', label: 'Advanced', desc: 'Upper-intermediate' },
+  { id: 'expert',   label: 'Expert',   desc: 'Advanced / academic' },
 ];
 
 const CATEGORIES = [

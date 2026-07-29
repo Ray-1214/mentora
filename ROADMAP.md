@@ -159,7 +159,7 @@
 
 ### 近期待辦(B1-B4 之後,錄 demo 前需處理)
 
-> 優先序(B6/B7/門檻/B8/B9/B10 已完成):剩 B5(弱點路由增強)+ B11(de-TOEIC 文案/service 殘留清理,B10 衍生)。B6 最終方案為【移除 topic 選擇器】而非重分類(見下),與 B7 移除考試選擇器同一 CEEC-only 邏輯(#30)。
+> 優先序(B6/B7/門檻/B8/B9/B10/B11 已完成):剩 B5(弱點路由增強,僅 Reverse Drill)。B6 最終方案為【移除 topic 選擇器】而非重分類(見下),與 B7 移除考試選擇器同一 CEEC-only 邏輯(#30)。B11(de-TOEIC 文案/service 殘留清理)已於 2026-07-29 完成。
 > B7 與門檻修正都動 `src/components/Main/index.js`,建議同一任務一起做。
 
 **B7 — ✅ 完成(2026-07-22) 移除首頁考試選擇器 / 六模式歸一(最高優先,demo 阻斷)**
@@ -200,11 +200,14 @@
   避免高頻誘答字灌爆弱點池。
 - 動到:src/services/storage.js(updateWordStats / getWeakVocabWords)。時機:B7 之後。
 
-**B11 — de-TOEIC 文案/service 殘留整批清理(低優先,技術債,B10 衍生)**
-- 問題:CEEC-only(#30)後 repo 仍有多處 TOEIC 品牌/語域殘留。已知:①Settings/index.js:184 假陳述「~20,000 words across TOEIC · TOEFL · IELTS · 學測」(實為 6169 單一學測,且與 #35 授權敘事矛盾;截圖/評審實機會露);②llm.js 的 EXAM_CONTEXT、`systemPrompt('TOEIC')`、generateVocabBatch 的 TOEIC 級別標籤、generatePart5/6/7 與 generateVocabQuestions 的 `exam='TOEIC'` 預設;③Review/index.js:19 `(item.quizType||'TOEIC')` fallback。
-- 做法:待該任務開始時逐一評估;Settings:184 優先(對外可見)。
-- 動到:src/components/Settings/index.js、src/services/llm.js、src/components/Review/index.js。
-- 兩支既有 baseline 紅測試(test-b2-build-vocab 的 B3 空釋義快照過期、test-w8-rename-clean 誤報鄰檔註解)亦屬技術債,可併此輪或另立處理。
+**B11 — ✅ 完成(2026-07-29) de-TOEIC 文案/service 殘留整批清理(技術債,B10 衍生)**
+- 問題:CEEC-only(#30)後 repo 仍有多處 TOEIC 品牌/語域殘留,分三層——對外可見(Settings:184 假字數「~20,000 words across TOEIC·TOEFL·IELTS·學測」,實為 6169 單一學測、與 #35 授權敘事矛盾;VocabManager:7-10 造字 level desc 的 TOEIC 分數帶)、造字語域(llm.js VOCAB_LEVELS + prompt 硬編 TOEIC/商業語域)、latent 死值(llm.js 4 個 exam='TOEIC' 預設 + systemPrompt fallback/base、Review 的 Anki tag fallback,現況因呼叫端覆寫永不觸發)。
+- 做了什麼:①Settings:184 → 「6,169 words from the CEEC official high-school English reference list (學測 / GSAT)」;②VocabManager 四級 desc 由 TOEIC 分數帶改中性難度語意;③llm.js:systemPrompt fallback 與 SYSTEM_PROMPT_BASE 由 'TOEIC' 改 '學測',4 個 generate* 的 exam 預設 'TOEIC'→'學測'(呼叫端仍顯式傳 BANK_EXAM 覆寫,行為不變、僅預設值本身正確),造字註解/VOCAB_LEVELS/prompt 3 行去 TOEIC 與商業語域;④Review Anki tag fallback `||'TOEIC'`→`||'Practice'`。
+- 刻意保留:vocab.js 的 EXAM_LABELS/EXAM_CONTEXT 的 TOEFL/IELTS(及 TOEIC)key 不刪——`EXAM_LABELS[q.exam]||q.exam` 為動態存取,刪 key 有風險且對外零影響(常數定義評審不可見);僅把 llm.js 的 fallback 指向由 `EXAM_CONTEXT['TOEIC']` 改 `EXAM_CONTEXT['學測']`,使 fallback 語意亦正確。
+- 驗收達成:test-b11-de-toeic(結構 guard,11 檢查:對外字串改對、latent 預設/fallback→學測、造字去 TOEIC、Review fallback 去 TOEIC、dict key 保留)先 10 FAIL/1 ok 後 11/11 PASS;test-stage3-part5-payload 無回歸、test-b7-structure ALL PASS、npm run build 通過(−38B);grep TOEIC 於 src 僅剩 vocab.js:216/223 兩個刻意保留 key。註:llm.js prompt/VOCAB_LEVELS 屬運行時 LLM 行為,靜態 guard 僅證字串、不證出題品質,待手動 electron-dev 驗造字/出題。
+- 動到:src/components/Settings/index.js、src/components/VocabManager/index.js、src/services/llm.js、src/components/Review/index.js、test-b11-de-toeic.mjs(新,repo 根)。
+- 對應 DECISIONS #41。
+- 併記:兩支既有 baseline 紅測試(test-b2-build-vocab 的 B3 空釋義快照過期、test-w8-rename-clean 誤報鄰檔註解)仍為獨立技術債,未在本輪處理,留待後續。
 
 **B8 — ✅ 完成(2026-07-24) Part 6(Passage Fill)選項點選跳位(bug,優先於 B6/B5)**
 - 問題:Part 6 作答時點任一選項,畫面會跳位(選項每次 render 重排);選中狀態仍正確,其他五模式無此症狀。

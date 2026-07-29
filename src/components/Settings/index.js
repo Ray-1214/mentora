@@ -181,7 +181,7 @@ const Settings = ({ onHome, isFirstLaunch }) => {
       {/* Vocab bank info */}
       <div style={{ marginTop: 24, padding: '14px 16px', background: 'var(--tag-bg)', borderRadius: 'var(--radius)', fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.8 }}>
         <strong style={{ color: 'var(--text-primary)' }}>About the Vocabulary Bank</strong><br />
-        Ships with <strong>~20,000 words</strong> across TOEIC · TOEFL · IELTS · 學測.<br />
+        Ships with <strong>6,169 words</strong> from the CEEC official high-school English reference list (學測 / GSAT).<br />
         Vocab Drill selects words by <em>frequency tier</em> — most important first.<br />
         <span style={{ color: 'var(--text-muted)' }}>Mastered words (consecutive correct ≥ threshold) are skipped automatically.</span>
       </div>
